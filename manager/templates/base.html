@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Echo{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <!-- Tailwind CSS link -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="flex h-screen">
+      <!-- Sidebar -->
+      <aside class="w-64 bg-gray-900 text-white">
+        <div class="p-6">
+          <h1 class="text-2xl font-bold mb-6">echo.</h1>
+          <nav>
+            <ul class="space-y-4">
+              <li>
+                <a
+                  href="{% url 'dashboard' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'dashboard' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🏠</span> Dashboard
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'products' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'products' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">📦</span> Products
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'brands' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'brands' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🏷️</span> Brands
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'customers' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">👥</span> Customers
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'orders' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🛒</span> Orders
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🏷️</span> Coupons
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'connectivity' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🔗</span> Connectivity
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'offers' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🎁</span> Offers
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'banner' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">🖼️</span> Banner
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'sales_report' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
+                >
+                  <span class="mr-2">📊</span> Sales Report
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'admin_logout' %}"
+                  class="flex items-center text-gray-400 hover:text-white"
+                >
+                  <span class="mr-2">🔒</span> Logout
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="bg-gray-800 text-white px-6 py-4">
+          <h1 class="text-xl font-semibold">
+            {% block header %}Welcome to Echo{% endblock %}
+          </h1>
+        </header>
+
+        <!-- Page Content -->
+        <main class="flex-1 p-6 bg-gray-100">
+          {% block content %}
+          <p>Page content goes here.</p>
+          {% endblock %}
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

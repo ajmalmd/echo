@@ -1,0 +1,148 @@
+{% extends 'base.html' %} {% block header %}Products{% endblock header %}
+{%block content %}
+<main class="p-6">
+  <div class="bg-gray-900 p-4 rounded-md">
+    <!-- Search Bar -->
+    <div class="mb-4 flex justify-between items-center">
+      <input
+        type="text"
+        class="bg-gray-700 text-white px-4 py-2 rounded-md"
+        placeholder="Search"
+      />
+      <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-md"
+        >Add New Product</a
+      >
+    </div>
+
+    <!-- Products Table -->
+    <table class="w-full text-center text-sm bg-gray-800 rounded-md">
+      <thead class="bg-gray-700 text-gray-300">
+        <tr>
+          <th class="px-4 py-2">Product</th>
+          <th class="px-4 py-2">Brand</th>
+          <th class="px-4 py-2">No. of Variants</th>
+          <th class="px-4 py-2">Connectivity</th>
+          <th class="px-4 py-2">Type</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in page_obj %}
+        <tr class="border-b border-gray-700 text-white text-center">
+          <!-- Product Name -->
+          <td class="px-4 py-2">{{ product.name }}</td>
+
+          <!-- Brand Name -->
+          <td class="px-4 py-2">{{ product.brand_name }}</td>
+
+          <!-- Number of Variants -->
+          <td class="px-4 py-2">{{ product.no_of_variants }}</td>
+
+          <!-- Connectivity Type -->
+          <td class="px-4 py-2">{{ product.connectivity_type }}</td>
+
+          <!-- Wear Type -->
+          <td class="px-4 py-2">{{ product.wear_type }}</td>
+
+          <!-- Is Active -->
+          <td class="px-4 py-2">
+            {% if product.is_active %}
+            <span class="text-green-400">Active</span>
+            {% else %}
+            <span class="text-red-400">Inactive</span>
+            {% endif %}
+          </td>
+
+          <!-- Actions -->
+          <td class="px-4 py-2 justify-center flex space-x-2">
+            <!-- View Button -->
+            <a
+              href="{% url 'product_view' %}"
+              class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500"
+            >
+              <i class="fas fa-eye"></i>
+            </a>
+            <!-- Edit Button -->
+            <a
+              href="#"
+              class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
+            >
+              <i class="fas fa-edit"></i>
+            </a>
+
+            <!-- Block or Unblock Button -->
+            {% if product.is_active %}
+            <a
+              href="#"
+              class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500"
+            >
+              <i class="fas fa-ban"></i>
+            </a>
+            {% else %}
+            <a
+              href="#"
+              class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500"
+            >
+              <i class="fas fa-check-circle"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="mt-4 flex justify-center space-x-2">
+      {% if page_obj.has_previous %}
+      <a
+        href="?page=1"
+        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >First</a
+      >
+      <a
+        href="?page={{ page_obj.previous_page_number }}"
+        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >Previous</a
+      >
+      {% else %}
+      <span
+        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
+        >First</span
+      >
+      <span
+        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
+        >Previous</span
+      >
+      {% endif %}
+
+      <span class="bg-gray-700 text-white px-4 py-2 rounded-md"
+        >{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span
+      >
+
+      {% if page_obj.has_next %}
+      <a
+        href="?page={{ page_obj.next_page_number }}"
+        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >Next</a
+      >
+      <a
+        href="?page={{ page_obj.paginator.num_pages }}"
+        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >Last</a
+      >
+      {% else %}
+      <span
+        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
+        >Next</span
+      >
+      <span
+        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
+        >Last</span
+      >
+      {% endif %}
+    </div>
+  </div>
+</main>
+{% endblock content %}
