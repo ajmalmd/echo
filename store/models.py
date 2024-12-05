@@ -37,3 +37,13 @@ class User(AbstractBaseUser, PermissionsMixin):  # Inherit PermissionsMixin
 
     def __str__(self):
         return self.email
+
+class Review(models.Model):
+    product = models.ForeignKey('manager.Product', on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField()  # 1 to 5
+    review_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.fullname} - {self.product.name}"
