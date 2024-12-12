@@ -1,26 +1,222 @@
-from django.shortcuts import render, get_object_or_404
-from manager.models import Product
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from .models import User, OTP
+from .services import generate_otp, send_otp_email, get_new_arrivals
+from .validators import is_valid_email, is_valid_name, is_valid_password
+from django.contrib.auth.decorators import user_passes_test
+from django.utils.timezone import now
+from datetime import timedelta
+from django.views.decorators.cache import never_cache
 
-def product_detail(request, pk):
-    # Fetch the product
-    product = get_object_or_404(Product, pk=pk, is_active=True, is_deleted=False)
 
-    # Fetch related variants
-    variants = product.variants.filter(is_active=True, is_deleted=False)
+def is_customer(user):
+    return user.is_authenticated and not user.is_staff
 
-    # Fetch product reviews
-    reviews = product.reviews.all()
 
-    # Fetch related products (same category or brand)
-    related_products = Product.objects.filter(
-        type=product.connectivity, is_active=True, is_deleted=False
-    ).exclude(pk=pk)[:4]  # Limit to 4 related products
+@never_cache
+def user_login(request):
 
-    context = {
-        'product': product,
-        'variants': variants,
-        'reviews': reviews,
-        'related_products': related_products,
-    }
+    next_url = request.GET.get("next", "home")
 
-    return render(request, 'product_view.html', context)
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        user = authenticate(request, email=email, password=password)
+
+        if user is not None and not user.is_staff and not user.is_active:
+            messages.error(request, "Your account is blocked.")
+            return render(request, "store/login.html", {"email": email})
+
+        if user is not None and not user.is_staff and user.is_active:
+            login(request, user)
+            return redirect(next_url)
+
+        else:
+            messages.error(request, "Invalid email or password.")
+            return render(request, "store/login.html", {"email": email})
+
+    return render(request, "store/login.html")
+
+
+@never_cache
+def user_signup(request):
+
+    next_url = request.GET.get("next", "home")
+
+    if request.user.is_authenticated:
+        return redirect(next_url)
+
+    if request.method == "POST":
+        fullname = request.POST.get("fullname", "").strip()
+        email = request.POST.get("email", "").strip()
+        password = request.POST.get("password", "").strip()
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "User already exists")
+            return redirect("login")
+
+        # Perform validations
+        if not is_valid_email(email):
+            messages.error(request, "Invalid email address.")
+            return render(request, "store/signup.html", {"fullname": fullname})
+
+        if not is_valid_name(fullname):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return render(request, "store/signup.html", {"email": email})
+
+        if not is_valid_password(password):
+            messages.error(
+                request,
+                "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a digit, and a special character.",
+            )
+            return render(
+                request, "store/signup.html", {"fullname": fullname, "email": email}
+            )
+
+        # Generate OTP
+        otp = generate_otp()
+
+        # Fetch or create an OTP record for the email
+        otp_record = OTP.objects.get_or_create(email=email)
+
+        # Check resend limit
+        if otp_record.resend_count >= 3:
+            time_since_first_resend = now() - otp_record.created_at
+            if time_since_first_resend <= timedelta(hours=4):
+                messages.error(
+                    request,
+                    "Resend limit exceeded. Try again later.",
+                )
+                return redirect("signup")
+            else:
+                otp_record.resend_count = 0  # Reset resend count after 4 hours
+
+        # Send OTP and update the OTP record
+        send_otp_email(email, otp)
+        otp_record.otp = otp
+        otp_record.created_at = now()
+        otp_record.resend_count += 1
+        otp_record.save()
+
+        # Temporarily store user data in session for verification
+        request.session["user_signup_data"] = {
+            "email": email,
+            "fullname": fullname,
+            "password": password,
+        }
+
+        messages.success(request, "OTP sent to your email. Please verify.")
+        return redirect("verify_otp")
+
+    return render(request, "store/signup.html")
+
+
+def verify_otp(request):
+
+    next_url = request.GET.get("next", "home")
+
+    if request.user.is_authenticated:
+        return redirect(next_url)
+
+    if request.method == "POST":
+        # Combine OTP from individual inputs
+        otp = "".join([request.POST.get(f"otp{i+1}", "").strip() for i in range(6)])
+
+        # Check if user signup data exists in the session
+        user_signup_data = request.session.get("user_signup_data", None)
+        if not user_signup_data:
+            messages.error(request, "No signup session found. Please sign up again.")
+            return redirect("signup")
+
+        email = user_signup_data["email"]
+
+        # Validate the OTP
+        try:
+            otp_record = OTP.objects.get(email=email)
+            if otp_record.otp != otp:
+                messages.error(request, "Invalid OTP.")
+                return render(request, "store/verify_otp.html")
+
+            if (now() - otp_record.created_at).total_seconds() > 120:  # 10 minutes
+                messages.error(request, "OTP has expired.")
+                return render(request, "store/verify_otp.html")
+
+        except OTP.DoesNotExist:
+            messages.error(request, "No OTP record found. Please sign up again.")
+            return redirect("signup")
+
+        # OTP is valid; create the user
+        User.objects.create_user(
+            email=email,
+            password=user_signup_data["password"],
+            fullname=user_signup_data["fullname"],
+        )
+
+        # Clean up session and OTP record
+        del request.session["user_signup_data"]
+        otp_record.delete()
+
+        messages.success(
+            request, "OTP verified successfully. Your account has been created."
+        )
+
+        # Authenticate and Login verified user
+        user = authenticate(request, email=email, password=user_signup_data["password"])
+        login(request, user)
+        return redirect("home")
+
+    elif request.method == "GET" and request.GET.get("resend", None) == "true":
+        # Resend OTP logic
+        user_signup_data = request.session.get("user_signup_data", None)
+        if not user_signup_data:
+            messages.error(request, "No signup session found. Please sign up again.")
+            return redirect("signup")
+
+        email = user_signup_data["email"]
+
+        try:
+            otp_record = OTP.objects.get(email=email)
+
+            if otp_record.resend_count >= 3:
+                time_since_first_resend = now() - otp_record.created_at
+
+                if time_since_first_resend <= timedelta(hours=4):
+                    messages.error(request, "Resend limit exceeded. Try again later.")
+                    return redirect("signup")
+
+                else:
+                    otp_record.resend_count = 0  # Reset resend count after 4 hours
+
+            # Generate and send new OTP
+            otp = generate_otp()
+            otp_record.otp = otp
+            otp_record.created_at = now()
+            otp_record.resend_count += 1
+            otp_record.save()
+
+            send_otp_email(email, otp)
+
+            messages.success(request, "OTP has been resent.")
+
+        except OTP.DoesNotExist:
+            messages.error(request, "No OTP record found. Please sign up again.")
+            return redirect("signup")
+
+    return render(request, "store/verify_otp.html")
+
+
+def user_logout(request):
+    logout(request)
+    return redirect("home")
+
+
+# @user_passes_test(is_customer)
+def home(request):
+    new_arrivals = get_new_arrivals(6)
+
+    return render(request, "store/home.html", {"new_arrivals": new_arrivals})

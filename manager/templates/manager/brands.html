@@ -1,5 +1,5 @@
-{% extends 'base.html' %} {% block header %}Products{% endblock header %}
-{%block content %}
+{% extends 'manager/base.html' %} {% block header %}Brands{% endblock header %}
+{% block content %}
 <main class="p-6">
   <div class="bg-gray-900 p-4 rounded-md">
     <!-- Search Bar -->
@@ -10,79 +10,56 @@
         placeholder="Search"
       />
       <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-md"
-        >Add New Product</a
+        >Add New Brand</a
       >
     </div>
 
-    <!-- Products Table -->
+    <!-- Brands Table -->
     <table class="w-full text-center text-sm bg-gray-800 rounded-md">
       <thead class="bg-gray-700 text-gray-300">
         <tr>
-          <th class="px-4 py-2">Product</th>
           <th class="px-4 py-2">Brand</th>
-          <th class="px-4 py-2">No. of Variants</th>
-          <th class="px-4 py-2">Connectivity</th>
-          <th class="px-4 py-2">Type</th>
+          <th class="px-4 py-2">No. of Products</th>
           <th class="px-4 py-2">Status</th>
           <th class="px-4 py-2">Action</th>
         </tr>
       </thead>
       <tbody>
-        {% for product in page_obj %}
-        <tr class="border-b border-gray-700 text-white text-center">
-          <!-- Product Name -->
-          <td class="px-4 py-2">{{ product.name }}</td>
-
-          <!-- Brand Name -->
-          <td class="px-4 py-2">{{ product.brand_name }}</td>
-
-          <!-- Number of Variants -->
-          <td class="px-4 py-2">{{ product.no_of_variants }}</td>
-
-          <!-- Connectivity Type -->
-          <td class="px-4 py-2">{{ product.connectivity_type }}</td>
-
-          <!-- Wear Type -->
-          <td class="px-4 py-2">{{ product.wear_type }}</td>
-
-          <!-- Is Active -->
+        {% for brand in page_obj %}
+        <tr class="border-b border-gray-700 text-white">
+          <td class="px-4 py-2">{{ brand.name }}</td>
+          <td class="px-4 py-2">{{ brand.product_count }}</td>
           <td class="px-4 py-2">
-            {% if product.is_active %}
-            <span class="text-green-400">Active</span>
+            {% if brand.is_active %}
+            <span class="text-green-500">Active</span>
             {% else %}
-            <span class="text-red-400">Inactive</span>
+            <span class="text-red-500">Inactive</span>
             {% endif %}
           </td>
-
           <!-- Actions -->
           <td class="px-4 py-2 justify-center flex space-x-2">
-            <!-- View Button -->
-            <a
-              href="{% url 'product_view' %}"
-              class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500"
-            >
-              <i class="fas fa-eye"></i>
-            </a>
             <!-- Edit Button -->
             <a
-              href="#"
+              href=""
               class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
+              title="Edit"
             >
               <i class="fas fa-edit"></i>
             </a>
-
-            <!-- Block or Unblock Button -->
-            {% if product.is_active %}
+            <!-- Block/Unblock Button -->
+            {% if brand.is_active %}
             <a
-              href="#"
+              href="{% url 'toggle_brand_status' brand.id %}"
               class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500"
+              title="Block"
             >
               <i class="fas fa-ban"></i>
             </a>
             {% else %}
             <a
-              href="#"
+              href="{% url 'toggle_brand_status' brand.id %}"
               class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500"
+              title="Unblock"
             >
               <i class="fas fa-check-circle"></i>
             </a>
@@ -117,9 +94,7 @@
       >
       {% endif %}
 
-      <span class="bg-gray-700 text-white px-4 py-2 rounded-md"
-        >{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span
-      >
+      <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
 
       {% if page_obj.has_next %}
       <a

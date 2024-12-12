@@ -22,8 +22,7 @@ class Product(models.Model):
 
     TYPE_CHOICES = [
         ("in_ear", "In the Ear"),
-        ("over_ear", "Over the Ear"),
-        ("buds", "Buds"),
+        ("over_ear", "Over the Ear")
     ]
 
     DISCOUNT_TYPE_CHOICES = [
@@ -79,7 +78,6 @@ class ProductVariant(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
-    color = models.CharField(max_length=50, null=True, blank=True)  # Optional: color for each variant
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="created_variants"

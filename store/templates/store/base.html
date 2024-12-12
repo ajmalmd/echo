@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Echo{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome CDN -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, and Opera */
+      }
+      /* Custom Fonts */
+      .font-ubuntu {
+        font-family: "Ubuntu", sans-serif;
+      }
+      .font-roboto {
+        font-family: "Roboto", sans-serif;
+      }
+    </style>
+    <!-- Page-specific styles -->
+    {% block style %}{% endblock %}
+    <script>
+      // Close the message bar when the close button is clicked
+      document.addEventListener("DOMContentLoaded", () => {
+        const closeButton = document.getElementById("close-message");
+        const messageBar = document.getElementById("message-bar");
+
+        if (closeButton) {
+          closeButton.addEventListener("click", () => {
+            messageBar.style.display = "none";
+          });
+        }
+      });
+    </script>
+  </head>
+  <body class="flex flex-col min-h-screen bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+      <div
+        class="container mx-auto px-4 py-4 flex justify-between items-center"
+      >
+        <h1 class="text-3xl font-regular font-ubuntu">echo.</h1>
+        <nav>
+          <ul class="flex space-x-6 items-center">
+            <li>
+              <a href="" class="text-gray-700 hover:text-gray-900">Products</a>
+            </li>
+            <li>
+              <a href="" class="text-gray-700 hover:text-gray-900">Contact</a>
+            </li>
+            {% if user.is_authenticated %}
+            <!-- Adding extra spacing between Contact and icons -->
+            <div class="flex space-x-4 ml-6">
+              <!-- Profile Icon with Hover Dropdown -->
+              <div class="relative group">
+                <a href="#" class="text-gray-700 hover:text-gray-900 peer">
+                  <i class="fas fa-user text-lg"></i>
+                </a>
+                <!-- Dropdown Menu -->
+                <ul
+                  class="absolute hidden peer-hover:block hover:block bg-white shadow-md rounded-lg mt-2 right-0 w-40 py-2 top-5 text-gray-700 text-sm z-10"
+                >
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Profile</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Orders</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Addresses</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Wallet</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Coupon</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="" class="block px-4 py-2">Change Password</a>
+                  </li>
+                  <li class="hover:bg-gray-100">
+                    <a href="{% url 'logout' %}" class="block px-4 py-2">Logout</a>
+                  </li>
+                </ul>
+              </div>
+              <a href="" class="text-gray-700 hover:text-gray-900">
+                <i class="fas fa-heart text-lg"></i>
+              </a>
+              <a href="" class="text-gray-700 hover:text-gray-900">
+                <i class="fas fa-shopping-cart text-lg"></i>
+              </a>
+            </div>
+            {% else %} {% if request.path == '/login/' %}
+            <li>
+              <a
+                href="{% url 'signup' %}"
+                class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu"
+              >
+                SIGN UP
+              </a>
+            </li>
+            {% else %}
+            <li>
+              <a
+                href="{% url 'login' %}"
+                class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu"
+              >
+                LOGIN
+              </a>
+            </li>
+            {% endif %} {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+      <!-- Message Bar -->
+      {% if messages %}
+      <div id="message-bar" class="fixed left-0 w-full z-50">
+        <div
+          class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between"
+        >
+          <div>
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+          </div>
+          <button
+            id="close-message"
+            class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4"
+            aria-label="Close Message"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      {% endif %}
+      <div class="m-5">
+        {% block content %}
+        <!-- Page-specific content goes here -->
+        {% endblock %}
+      </div>
+    </main>
+
+    <footer class="bg-gray-800 text-gray-300">
+      <div
+        class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center"
+      >
+        <!-- Logo -->
+        <div class="mb-4 md:mb-0">
+          <span class="text-3xl font-regular font-ubuntu text-white"
+            >echo.</span
+          >
+        </div>
+
+        <!-- Links -->
+        <div class="flex space-x-4 text-sm">
+          <a href="#" class="hover:underline">Policy</a>
+          <a href="#" class="hover:underline">About Us</a>
+          <a href="#" class="hover:underline">Terms & Conditions</a>
+          <a href="#" class="hover:underline">Contact</a>
+        </div>
+
+        <!-- Social Media Icons -->
+        <div class="flex space-x-4 mt-4 md:mt-0">
+          <a href="#" class="hover:text-white"
+            ><i class="fab fa-facebook"></i
+          ></a>
+          <a href="#" class="hover:text-white"
+            ><i class="fab fa-twitter"></i
+          ></a>
+          <a href="#" class="hover:text-white"
+            ><i class="fab fa-instagram"></i
+          ></a>
+        </div>
+      </div>
+      <div class="text-center text-gray-500 text-sm mt-4">
+        © Copyright 2021. All rights reserved.
+      </div>
+    </footer>
+    <!-- Page-specific scripts -->
+    {% block script %}{% endblock %}
+  </body>
+</html>

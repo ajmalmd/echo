@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils.timezone import now
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -22,7 +23,7 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 # Custom User Model
-class User(AbstractBaseUser, PermissionsMixin):  # Inherit PermissionsMixin
+class User(AbstractBaseUser, PermissionsMixin):
     fullname = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)
@@ -33,15 +34,21 @@ class User(AbstractBaseUser, PermissionsMixin):  # Inherit PermissionsMixin
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []  # We only use email for login
+    REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email
+    
+class OTP(models.Model):
+    email = models.EmailField(unique=True)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(default=now)
+    resend_count = models.IntegerField(default=0)
 
 class Review(models.Model):
     product = models.ForeignKey('manager.Product', on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    rating = models.IntegerField()  # 1 to 5
+    rating = models.IntegerField()
     review_text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

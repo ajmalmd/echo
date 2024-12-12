@@ -1,0 +1,86 @@
+{% extends 'store/base.html' %} {% load static %} {% block title%}echo{%endblock%} {% block content %}
+<!-- Hero Section -->
+<section class="container mx-auto px-4 py-12 md:py-24">
+  <div class="grid grid-cols-1 items-center">
+    <div class="relative bg-black">
+      <img
+        src="{% static 'store/images/headphone.png' %}"
+        alt="Premium Headphones"
+        class="w-full max-w-lg mx-auto"
+      />
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="container mx-auto px-4 py-12">
+  <div class="flex flex-wrap justify-center gap-8">
+    <div class="bg-white p-8 rounded-lg shadow-sm text-center w-64">
+      <h3 class="text-xl font-semibold mb-2">1 year</h3>
+      <p class="text-gray-600">warranty</p>
+    </div>
+    <div class="bg-white p-8 rounded-lg shadow-sm text-center w-64">
+      <h3 class="text-xl font-semibold mb-2">Free</h3>
+      <p class="text-gray-600">Delivery</p>
+    </div>
+    <div class="bg-white p-8 rounded-lg shadow-sm text-center w-64">
+      <h3 class="text-xl font-semibold mb-2">7 day</h3>
+      <p class="text-gray-600">Replacement</p>
+    </div>
+  </div>
+</section>
+
+<!-- Best Selling Section -->
+<section class="container mx-auto px-4 py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h2 class="text-2xl font-bold">New Arrivals</h2>
+    <a href="#" class="text-gray-600 hover:text-gray-900"> Show All → </a>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    {% for product in new_arrivals %}
+    {% with product.first_variant.0 as variant %}
+    {% if variant %}
+    {% with variant.first_image.0 as image %}
+    <div class="bg-white p-4 rounded-lg shadow-sm group">
+      <div class="relative">
+        {% if image %}
+        <img
+          src="{{ image.image_path.url }}"
+          alt="{{ variant.name }}"
+          class="w-full h-auto"
+        />
+        {% endif %}
+        {% endwith %}
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
+      </div>
+      <div class="mt-4">
+        <p class="text-gray-600">${{ variant.discounted_price }}</p>
+        <button
+          class="mt-4 w-full bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
