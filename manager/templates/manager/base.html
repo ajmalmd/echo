@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Echo{% endblock %}</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
 
     <!-- Tailwind CSS link -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,6 +17,21 @@
         overflow-y: auto;
       }
     </style>
+    <script>
+      // Close the message bar when the close button is clicked
+      document.addEventListener("DOMContentLoaded", () => {
+        const closeButton = document.getElementById("close-message");
+        const messageBar = document.getElementById("message-bar");
+
+        if (closeButton) {
+          closeButton.addEventListener("click", () => {
+            messageBar.style.display = "none";
+          });
+        }
+      });
+    </script>
+    <!-- Page-specific styles -->
+    {% block style %}{% endblock %}
   </head>
   <body class="bg-gray-100 text-gray-800">
     <div class="flex h-screen">
@@ -55,7 +73,8 @@
                   <span class="mr-2">👥</span> Users
                 </a>
               </li>
-              {% comment %} <li>
+              {% comment %}
+              <li>
                 <a
                   href="#"
                   class="flex items-center {% if request.resolver_match.url_name == 'orders' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
@@ -102,7 +121,8 @@
                 >
                   <span class="mr-2">📊</span> Sales Report
                 </a>
-              </li> {% endcomment %}
+              </li>
+              {% endcomment %}
               <li>
                 <a
                   href="{% url 'admin_logout' %}"
@@ -127,11 +147,34 @@
 
         <!-- Page Content -->
         <main class="flex-1 p-6 bg-gray-100 scrollable-content">
+          <!-- Message Bar -->
+          {% if messages %}
+          <div id="message-bar" class="w-full z-50">
+            <div
+              class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between"
+            >
+              <div>
+                {% for message in messages %}
+                <p>{{ message }}</p>
+                {% endfor %}
+              </div>
+              <button
+                id="close-message"
+                class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4"
+                aria-label="Close Message"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {% endif %}
           {% block content %}
           <p>Page content goes here.</p>
           {% endblock %}
         </main>
       </div>
     </div>
+    <!-- Page-specific scripts -->
+    {% block script %}{% endblock %}
   </body>
 </html>

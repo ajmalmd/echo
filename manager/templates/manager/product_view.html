@@ -19,17 +19,24 @@
         <strong>Connectivity:</strong> {{ product.get_connectivity_display }}
       </p>
       <p class="mb-2">
-        <strong>Price:</strong> ${{ product.discounted_price }}
+        <strong>Price:</strong> {{ product.discounted_price }}
       </p>
       <p class="mb-4">
         <strong>Description:</strong> {{ product.description }}
       </p>
     </div>
-
     <!-- Variants -->
-    {% if variants %}
     <div class="bg-gray-800 p-6 rounded shadow-md">
-      <h2 class="text-xl font-bold mb-4 text-white">Variants</h2>
+      <div class="mb-4 flex justify-between items-center">
+        <h2 class="text-xl font-bold mb-4 text-white">Variants</h2>
+        <button
+          onclick="toggleModal()"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md"
+        >
+          Add New Variant
+        </button>
+      </div>
+      {% if variants %}
       <table class="w-full text-center text-white text-sm rounded-md">
         <thead class="bg-gray-700 text-gray-300">
           <tr>
@@ -45,9 +52,9 @@
           {% for variant in variants %}
           <tr class="border-b border-gray-700">
             <td class="py-2 px-4">{{ variant.name }}</td>
-            <td class="py-2 px-4">${{ variant.price }}</td>
+            <td class="py-2 px-4">{{ variant.price }}</td>
             <td class="py-2 px-4">{{ variant.stock }}</td>
-            <td class="py-2 px-4">${{ variant.discounted_price }}</td>
+            <td class="py-2 px-4">{{ variant.discounted_price }}</td>
             <td class="py-2 px-4">
               {% if variant.is_active %}
               <span class="text-green-400">Active</span>
@@ -97,10 +104,17 @@
           {% endfor %}
         </tbody>
       </table>
+      {% else %}
+      <p class="text-gray-200 mt-6">No variants available for this product.</p>
+      {% endif %}
     </div>
-    {% else %}
-    <p class="text-gray-600 mt-6">No variants available for this product.</p>
-    {% endif %}
   </div>
 </main>
+
+<script>
+  function toggleModal() {
+    const modal = document.getElementById("addVariantModal");
+    modal.classList.toggle("hidden");
+  }
+</script>
 {% endblock content %}

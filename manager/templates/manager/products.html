@@ -1,5 +1,8 @@
-{% extends 'manager/base.html' %} {% block header %}Products{% endblock header %}
-{%block content %}
+{% extends 'manager/base.html' %}
+
+{% block header %}Products{% endblock header %}
+
+{% block content %}
 <main class="p-6">
   <div class="bg-gray-900 p-4 rounded-md">
     <!-- Search Bar -->
@@ -29,28 +32,18 @@
           {% comment %} <th class="px-4 py-2">Discount</th> {% endcomment %}
           {% comment %} <th class="px-4 py-2">Discounted Price</th> {% endcomment %}
           <th class="px-4 py-2">No. of Variants</th>
+          {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
           <th class="px-4 py-2">Status</th>
           <th class="px-4 py-2">Action</th>
         </tr>
       </thead>
       <tbody>
         {% for product in page_obj %}
-        <tr class="border-b border-gray-700 text-white text-center">
-          <!-- Product Name -->
+        <tr class="border-b border-gray-700 text-white">
           <td class="px-4 py-2">{{ product.name }}</td>
-
-          <!-- Brand Name -->
           <td class="px-4 py-2">{{ product.brand.name }}</td>
-
-          <!-- Connectivity -->
           <td class="px-4 py-2">{{ product.get_connectivity_display }}</td>
-
-          <!-- Type -->
           <td class="px-4 py-2">{{ product.get_type_display }}</td>
-
-          <!-- Price -->
-          {% comment %} <td class="px-4 py-2">${{ product.price }}</td> {% endcomment %}
-
           <!-- Discount -->
           {% comment %} <td class="px-4 py-2">
             {% if product.is_discount_active %} {{ product.discount_value }} {{
@@ -60,12 +53,11 @@
           <!-- Discounted Price -->
           {% comment %} <td class="px-4 py-2">
             {% if product.is_discount_active %}
-            ${{product.discounted_price|floatformat:2}} {% else %} N/A {% endif %}
+            {{product.discounted_price|floatformat:2}} {% else %} N/A {% endif %}
           </td> {% endcomment %}
 
           <td class="px-4 py-2">{{ product.variant_count }}</td>
-
-          <!-- Is Active -->
+          {% comment %} <td class="px-4 py-2">{{ product.price }}</td> {% endcomment %}
           <td class="px-4 py-2">
             {% if product.is_active %}
             <span class="text-green-400">Active</span>
@@ -73,10 +65,7 @@
             <span class="text-red-400">Inactive</span>
             {% endif %}
           </td>
-
-          <!-- Actions -->
-          <td class="px-4 py-2 justify-center flex space-x-2">
-            <!-- View Button -->
+          <td class="px-4 py-2 flex justify-center space-x-2">
             <a
               href="{% url 'product_view' product.id %}"
               class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500"
@@ -84,12 +73,21 @@
             >
               <i class="fas fa-eye"></i>
             </a>
-            <!-- Edit Button -->
+            <script type="application/json" id="product-{{ product.id }}">
+              {
+                  "id": "{{ product.id }}",
+                  "name": "{{ product.name }}",
+                  "brand": "{{ product.brand.id }}",
+                  "connectivity": "{{ product.connectivity }}",
+                  "product_type": "{{ product.type }}",
+                  "price": "{{ product.price }}",
+                  "description": "{{ product.description }}"
+              }
+            </script>
             <a
-              href="#editProductModal"
+              onclick="toggleEditModal(JSON.parse(document.getElementById('product-{{ product.id }}').textContent))"
               class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
               title="Edit"
-              data-modal-toggle="editProductModal"
             >
               <i class="fas fa-edit"></i>
             </a>
@@ -169,7 +167,8 @@
     </div>
   </div>
 </main>
-<!-- Modal -->
+
+<!-- Add Product Modal -->
 <div
   id="addProductModal"
   class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden"
@@ -185,7 +184,7 @@
     <form
       method="POST"
       enctype="multipart/form-data"
-      action="#"
+      action="{% url 'add_product' %}"
       class="space-y-4"
     >
       {% csrf_token %}
@@ -216,9 +215,7 @@
           </select>
         </div>
         <div>
-          <label for="connectivity" class="block mb-2 text-white"
-            >Connectivity</label
-          >
+          <label for="connectivity" class="block mb-2 text-white">Connectivity</label>
           <select
             id="connectivity"
             name="connectivity"
@@ -247,15 +244,25 @@
         </div>
       </div>
       <div>
-        <label for="description" class="block mb-2 text-white"
-          >Description</label
-        >
+        <label for="description" class="block mb-2 text-white">Description</label>
         <textarea
           id="description"
           name="description"
-          class="w-full bg-gray-800 p-2 rounded-md"
+          class="w-full bg-gray-800 p-2 rounded-md text-white"
           placeholder="Enter product description"
         ></textarea>
+      </div>
+      <div>
+        <label for="price" class="block mb-2 text-white">Price</label>
+        <input
+          type="number"
+          id="price"
+          name="price"
+          step="0.01"
+          class="w-full bg-gray-800 p-2 rounded-md text-white"
+          placeholder="Enter product price"
+          required
+        />
       </div>
       <button
         type="submit"
@@ -273,4 +280,130 @@
     modal.classList.toggle("hidden");
   }
 </script>
+
+<!-- Edit Product Modal -->
+<div
+  id="editProductModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden"
+>
+  <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
+    <button
+      onclick="toggleEditModal()"
+      class="absolute top-2 right-2 text-white hover:text-gray-400"
+    >
+      &times;
+    </button>
+    <h2 class="text-xl text-white mb-4">Edit Product</h2>
+    <form
+      method="POST"
+      enctype="multipart/form-data"
+      id="editProductForm"
+      class="space-y-4"
+    >
+      {% csrf_token %}
+      <div>
+        <label for="edit_name" class="block mb-2 text-white">Product Name</label>
+        <input
+          type="text"
+          id="edit_name"
+          name="name"
+          class="w-full bg-gray-800 p-2 rounded-md text-white"
+          placeholder="Enter product name"
+          required
+        />
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label for="edit_brand" class="block mb-2 text-white">Brand</label>
+          <select
+            id="edit_brand"
+            name="brand"
+            class="w-full bg-gray-800 p-2 rounded-md text-white"
+            required
+          >
+            <option value="" disabled>Select a brand</option>
+            {% for brand in brands %}
+            <option value="{{ brand.id }}">{{ brand.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="edit_connectivity" class="block mb-2 text-white">Connectivity</label>
+          <select
+            id="edit_connectivity"
+            name="connectivity"
+            class="w-full bg-gray-800 p-2 rounded-md text-white"
+            required
+          >
+            <option value="" disabled>Select connectivity type</option>
+            {% for key, value in product.CONNECTIVITY_CHOICES %}
+            <option value="{{ key }}">{{ value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="edit_type" class="block mb-2 text-white">Type</label>
+          <select
+            id="edit_type"
+            name="type"
+            class="w-full bg-gray-800 p-2 rounded-md text-white"
+            required
+          >
+            <option value="" disabled>Select type</option>
+            {% for key, value in product.TYPE_CHOICES %}
+            <option value="{{ key }}">{{ value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="edit_description" class="block mb-2 text-white">Description</label>
+        <textarea
+          id="edit_description"
+          name="description"
+          class="w-full bg-gray-800 p-2 rounded-md text-white"
+          placeholder="Enter product description"
+        ></textarea>
+      </div>
+      <div>
+        <label for="edit_price" class="block mb-2 text-white">Price</label>
+        <input
+          type="number"
+          id="edit_price"
+          name="price"
+          step="0.01"
+          class="w-full bg-gray-800 p-2 rounded-md text-white"
+          placeholder="Enter product price"
+          required
+        />
+      </div>
+      <button
+        type="submit"
+        class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4"
+      >
+        Update Product
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function toggleEditModal(productData) {
+    const modal = document.getElementById("editProductModal");
+    modal.classList.toggle("hidden");
+    console.log(productData.product_type)
+
+    if (productData) {
+      // Dynamically set the action URL
+      document.getElementById("editProductForm").action = `{% url 'edit_product' 0 %}`.replace("0",productData.id);
+      document.getElementById("edit_name").value = productData.name;
+      document.getElementById("edit_brand").value = productData.brand;
+      document.getElementById("edit_connectivity").value = productData.connectivity;
+      document.getElementById("edit_type").value = productData.product_type;
+      document.getElementById("edit_description").value = productData.description;
+      document.getElementById("edit_price").value = productData.price;
+    }
+  }
+</script>
+
 {% endblock content %}

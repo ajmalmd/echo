@@ -9,9 +9,12 @@
         class="bg-gray-700 text-white px-4 py-2 rounded-md"
         placeholder="Search"
       />
-      <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-md"
-        >Add New Brand</a
-      >
+      <button
+        id="add-brand-btn"
+        class="bg-blue-600 text-white px-4 py-2 rounded-md"
+        data-modal-toggle="add-brand-modal"
+        >Add New Brand
+      </button>
     </div>
 
     <!-- Brands Table -->
@@ -120,4 +123,45 @@
     </div>
   </div>
 </main>
+
+<!-- Modal for Add New Brand -->
+<div id="add-brand-modal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+  <div class="bg-gray-800 p-6 rounded-md w-96">
+    <h2 class="text-lg text-white mb-4">Add New Brand</h2>
+    <form method="POST" action="{% url 'add_brand' %}" id="add-brand-form">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label for="brand-name" class="text-white">Brand Name</label>
+        <input type="text" name="name" id="brand-name" class="bg-gray-700 text-white px-4 py-2 rounded-md w-full" placeholder="Enter brand name" required>
+      </div>
+      <div class="flex justify-end space-x-2">
+        <button type="button" id="close-modal" class="bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Add Brand</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock content %}
+{% block script %}
+<script>
+  document.getElementById('add-brand-btn').addEventListener('click', function() {
+    document.getElementById('add-brand-modal').classList.remove('hidden');
+  });
+
+  document.getElementById('close-modal').addEventListener('click', function() {
+    document.getElementById('add-brand-modal').classList.add('hidden');
+  });
+
+  // Prevent closing the modal if there are form validation errors
+  document.getElementById('add-brand-form').addEventListener('submit', function(event) {
+    const form = event.target;
+    const brandName = form.querySelector('#brand-name').value.trim();
+
+    if (!brandName) {
+      event.preventDefault();
+      alert('Brand name is required.');
+    }
+  });
+</script>
+{% endblock  %}

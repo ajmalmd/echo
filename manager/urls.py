@@ -11,12 +11,14 @@ urlpatterns = [
     
     path('brands/', views.brands, name='brands'),
     path("brand/<int:brand_id>/toggle-status/", views.toggle_brand_status, name="toggle_brand_status"),
+    path('add-brand/', views.add_brand, name='add_brand'),
     
     path('products/', views.products, name='products'),
+    path('products/add/', views.add_product, name='add_product'),
+    path("products/edit/<int:product_id>/", views.edit_product, name="edit_product"),
     path("product/<int:product_id>/toggle-status/", views.toggle_product_status, name="toggle_product_status"),
     
     path('products/view/<int:product_id>/', views.product_view, name='product_view'),
     path("variant/<int:variant_id>/toggle-status/", views.toggle_variant_status, name="toggle_variant_status"),
     
-    path('products/add/', views.add_product, name='add_product'),
 ]
