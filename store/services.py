@@ -10,7 +10,7 @@ def generate_otp():
 
 def send_otp_email(email, otp):
     subject = "Your OTP for Signup in echo."
-    message = f"Your OTP is {otp}. It is valid for 10 minutes."
+    message = f"Your OTP is {otp}. It is valid for 5 minutes."
     from_email = "connect.echo.mails@gmail.com"
     recipient_list = [email]
     send_mail(subject, message, from_email, recipient_list)

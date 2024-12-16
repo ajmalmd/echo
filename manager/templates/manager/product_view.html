@@ -1,120 +1,96 @@
-{% extends "manager/base.html" %} {% block header %} Product Details {% endblock header %}
+{% extends 'manager/base.html' %} {% block header %}
+  Product Details
+{% endblock %}
 {% block content %}
-<main class="p-6">
-  <!-- Breadcrumbs -->
-  <nav class="text-gray-300 text-sm mb-4">
-    {% comment %} <a href="" class="text-blue-400 hover:underline">Home</a> &raquo; {% endcomment %}
-    <a href="{% url 'products' %}" class="text-blue-400 hover:underline">Products</a>
-    &raquo;
-    <span>{{ product.name }}</span>
-  </nav>
+  <main class="p-6">
+    <!-- Breadcrumbs -->
+    <nav class="text-gray-300 text-sm mb-4">
+      {% comment %} <a href="" class="text-blue-400 hover:underline">Home</a> &raquo;{% endcomment %}
+      <a href="{% url 'products' %}" class="text-blue-400 hover:underline">Products</a>
+      &raquo;
+      <span>{{ product.name }}</span>
+    </nav>
 
-  <div class="container mx-auto p-8">
-    <!-- Product Details -->
-    <div class="bg-gray-800 p-6 rounded shadow-md mb-6 text-white">
-      <h1 class="text-2xl font-bold mb-4">{{ product.name }}</h1>
-      <p class="mb-2"><strong>Brand:</strong> {{ product.brand.name }}</p>
-      <p class="mb-2"><strong>Type:</strong> {{ product.get_type_display }}</p>
-      <p class="mb-2">
-        <strong>Connectivity:</strong> {{ product.get_connectivity_display }}
-      </p>
-      <p class="mb-2">
-        <strong>Price:</strong> {{ product.discounted_price }}
-      </p>
-      <p class="mb-4">
-        <strong>Description:</strong> {{ product.description }}
-      </p>
-    </div>
-    <!-- Variants -->
-    <div class="bg-gray-800 p-6 rounded shadow-md">
-      <div class="mb-4 flex justify-between items-center">
-        <h2 class="text-xl font-bold mb-4 text-white">Variants</h2>
-        <button
-          onclick="toggleModal()"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md"
-        >
-          Add New Variant
-        </button>
+    <div class="container mx-auto p-8">
+      <!-- Product Details -->
+      <div class="bg-gray-800 p-6 rounded shadow-md mb-6 text-white">
+        <h1 class="text-2xl font-bold mb-4">{{ product.name }}</h1>
+        <p class="mb-2">
+          <strong>Brand:</strong> {{ product.brand.name }}
+        </p>
+        <p class="mb-2">
+          <strong>Type:</strong> {{ product.get_type_display }}
+        </p>
+        <p class="mb-2">
+          <strong>Connectivity:</strong> {{ product.get_connectivity_display }}
+        </p>
+        <p class="mb-2">
+          <strong>Price:</strong> {{ product.discounted_price }}
+        </p>
+        <p class="mb-4">
+          <strong>Description:</strong> {{ product.description }}
+        </p>
       </div>
-      {% if variants %}
-      <table class="w-full text-center text-white text-sm rounded-md">
-        <thead class="bg-gray-700 text-gray-300">
-          <tr>
-            <th class="py-2 px-4">Name</th>
-            <th class="py-2 px-4">Price</th>
-            <th class="py-2 px-4">Stock</th>
-            <th class="py-2 px-4">Discounted Price</th>
-            <th class="py-2 px-4">Status</th>
-            <th class="py-2 px-4">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for variant in variants %}
-          <tr class="border-b border-gray-700">
-            <td class="py-2 px-4">{{ variant.name }}</td>
-            <td class="py-2 px-4">{{ variant.price }}</td>
-            <td class="py-2 px-4">{{ variant.stock }}</td>
-            <td class="py-2 px-4">{{ variant.discounted_price }}</td>
-            <td class="py-2 px-4">
-              {% if variant.is_active %}
-              <span class="text-green-400">Active</span>
-              {% else %}
-              <span class="text-red-400">Inactive</span>
-              {% endif %}
-            </td>
-            <!-- Actions -->
-            <td class="px-4 py-2 justify-center flex space-x-2">
-              <!-- View Button -->
-              <a
-                href=""
-                class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500"
-                title="View"
-              >
-                <i class="fas fa-eye"></i>
-              </a>
-              <!-- Edit Button -->
-              <a
-                href=""
-                class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
-                title="Edit"
-                data-modal-toggle="editProductModal"
-              >
-                <i class="fas fa-edit"></i>
-              </a>
-              <!-- Block/Unblock Button -->
-              {% if variant.is_active %}
-              <a
-                href="{% url 'toggle_variant_status' variant.id %}"
-                class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500"
-                title="Block"
-              >
-                <i class="fas fa-ban"></i>
-              </a>
-              {% else %}
-              <a
-                href="{% url 'toggle_variant_status' variant.id %}"
-                class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500"
-                title="Unblock"
-              >
-                <i class="fas fa-check-circle"></i>
-              </a>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="text-gray-200 mt-6">No variants available for this product.</p>
-      {% endif %}
+      <!-- Variants -->
+      <div class="bg-gray-800 p-6 rounded shadow-md">
+        <div class="mb-4 flex justify-between items-center">
+          <h2 class="text-xl font-bold mb-4 text-white">Variants</h2>
+          <button onclick="toggleModal()" class="bg-blue-600 text-white px-4 py-2 rounded-md">Add New Variant</button>
+        </div>
+        {% if variants %}
+          <table class="w-full text-center text-white text-sm rounded-md">
+            <thead class="bg-gray-700 text-gray-300">
+              <tr>
+                <th class="py-2 px-4">Name</th>
+                <th class="py-2 px-4">Price</th>
+                <th class="py-2 px-4">Stock</th>
+                <th class="py-2 px-4">Discounted Price</th>
+                <th class="py-2 px-4">Status</th>
+                <th class="py-2 px-4">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for variant in variants %}
+                <tr class="border-b border-gray-700">
+                  <td class="py-2 px-4">{{ variant.name }}</td>
+                  <td class="py-2 px-4">{{ variant.price }}</td>
+                  <td class="py-2 px-4">{{ variant.stock }}</td>
+                  <td class="py-2 px-4">{{ variant.discounted_price }}</td>
+                  <td class="py-2 px-4">
+                    {% if variant.is_active %}
+                      <span class="text-green-400">Active</span>
+                    {% else %}
+                      <span class="text-red-400">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <!-- Actions -->
+                  <td class="px-4 py-2 justify-center flex space-x-2">
+                    <!-- View Button -->
+                    <a href="" class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500" title="View"><i class="fas fa-eye"></i></a>
+                    <!-- Edit Button -->
+                    <a href="" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit" data-modal-toggle="editProductModal"><i class="fas fa-edit"></i></a>
+                    <!-- Block/Unblock Button -->
+                    {% if variant.is_active %}
+                      <a href="{% url 'toggle_variant_status' variant.id %}" class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500" title="Block"><i class="fas fa-ban"></i></a>
+                    {% else %}
+                      <a href="{% url 'toggle_variant_status' variant.id %}" class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500" title="Unblock"><i class="fas fa-check-circle"></i></a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-gray-200 mt-6">No variants available for this product.</p>
+        {% endif %}
+      </div>
     </div>
-  </div>
-</main>
+  </main>
 
-<script>
-  function toggleModal() {
-    const modal = document.getElementById("addVariantModal");
-    modal.classList.toggle("hidden");
-  }
-</script>
-{% endblock content %}
+  <script>
+    function toggleModal() {
+      const modal = document.getElementById('addVariantModal')
+      modal.classList.toggle('hidden')
+    }
+  </script>
+{% endblock %}

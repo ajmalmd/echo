@@ -1,0 +1,71 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}
+  {{ product.name }} - echo
+{% endblock %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Product Images -->
+      <div class="space-y-2">
+        <!-- Main Image -->
+        <div class="border rounded p-2 bg-white max-w-md mx-auto">
+          <img src="{{ variant_images.first.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto max-h-80 object-contain" id="mainImage" />
+        </div>
+
+        <!-- Thumbnail Gallery -->
+        <div class="relative">
+          <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <div class="flex gap-2 overflow-x-auto px-4">
+            {% for image in variant_images %}
+              <button class="flex-shrink-0 border rounded p-1 hover:border-blue-500 focus:border-blue-500">
+                <img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-12 h-12 object-contain" onclick="document.getElementById('mainImage').src=this.src" />
+              </button>
+            {% endfor %}
+          </div>
+
+          <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="space-y-3">
+        <h1 class="text-xl font-bold">{{ product.name }}</h1>
+        <div class="text-lg">₹ {{ variant.price }}</div>
+
+        <!-- Color Selection -->
+        <div class="space-y-1">
+          {% if other_variants %}
+            <label class="block text-sm font-medium text-gray-700">Other Colors:</label>
+          {% endif %}
+          <div class="flex gap-2">
+            {% for other_variant in other_variants %}
+              <a href="{% url 'view_variant' other_variant.id %}" class="block text-center">
+                <img src="{{ other_variant.images.first.image_path.url }}" alt="{{ other_variant.name }}" class="w-10 h-10 object-contain mx-auto" />
+                <p class="text-xs mt-1">{{ other_variant.name }}</p>
+              </a>
+            {% endfor %}
+          </div>
+          <p class="text-sm text-gray-600">Selected: {{ variant.name }}</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-2">
+          <button class="flex-1 bg-orange-400 text-white px-4 py-2 rounded hover:bg-orange-500 transition">BUY NOW</button>
+          <button class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition">ADD TO CART</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

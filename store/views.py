@@ -1,12 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from .models import User, OTP
+from manager.models import Brand, Product, ProductVariant
 from .services import generate_otp, send_otp_email, get_new_arrivals
 from .validators import is_valid_email, is_valid_name, is_valid_password
 from django.contrib.auth.decorators import user_passes_test
-from django.utils.timezone import now
-from datetime import timedelta
+from django.utils.timezone import now, timedelta
+from datetime import datetime
 from django.views.decorators.cache import never_cache
 
 
@@ -82,7 +83,7 @@ def user_signup(request):
         otp = generate_otp()
 
         # Fetch or create an OTP record for the email
-        otp_record = OTP.objects.get_or_create(email=email)
+        otp_record, created = OTP.objects.get_or_create(email=email)
 
         # Check resend limit
         if otp_record.resend_count >= 3:
@@ -98,10 +99,14 @@ def user_signup(request):
 
         # Send OTP and update the OTP record
         send_otp_email(email, otp)
+
         otp_record.otp = otp
         otp_record.created_at = now()
         otp_record.resend_count += 1
         otp_record.save()
+
+        # Save OTP sending time in session
+        request.session["otp_sent_time"] = datetime.now().isoformat()
 
         # Temporarily store user data in session for verification
         request.session["user_signup_data"] = {
@@ -123,15 +128,15 @@ def verify_otp(request):
     if request.user.is_authenticated:
         return redirect(next_url)
 
+    # Check if user signup data exists in the session
+    user_signup_data = request.session.get("user_signup_data", None)
+    if not user_signup_data:
+        messages.error(request, "No signup session found. Please sign up again.")
+        return redirect("signup")
+
     if request.method == "POST":
         # Combine OTP from individual inputs
         otp = "".join([request.POST.get(f"otp{i+1}", "").strip() for i in range(6)])
-
-        # Check if user signup data exists in the session
-        user_signup_data = request.session.get("user_signup_data", None)
-        if not user_signup_data:
-            messages.error(request, "No signup session found. Please sign up again.")
-            return redirect("signup")
 
         email = user_signup_data["email"]
 
@@ -142,7 +147,7 @@ def verify_otp(request):
                 messages.error(request, "Invalid OTP.")
                 return render(request, "store/verify_otp.html")
 
-            if (now() - otp_record.created_at).total_seconds() > 120:  # 10 minutes
+            if (now() - otp_record.created_at).total_seconds() > 120:  # 2 minutes
                 messages.error(request, "OTP has expired.")
                 return render(request, "store/verify_otp.html")
 
@@ -159,6 +164,7 @@ def verify_otp(request):
 
         # Clean up session and OTP record
         del request.session["user_signup_data"]
+        del request.session["otp_sent_time"]
         otp_record.delete()
 
         messages.success(
@@ -178,6 +184,16 @@ def verify_otp(request):
             return redirect("signup")
 
         email = user_signup_data["email"]
+
+        # Check if resend is allowed based on the session's OTP sending time
+        otp_sent_time = request.session.get("otp_sent_time")
+        if otp_sent_time:
+            otp_sent_time = datetime.fromisoformat(otp_sent_time)
+            time_since_last_otp = datetime.now() - otp_sent_time
+
+            if time_since_last_otp < timedelta(seconds=59):  # 59 seconds
+                messages.error(request, "You must wait before resending the OTP.")
+                return redirect("verify_otp")
 
         try:
             otp_record = OTP.objects.get(email=email)
@@ -201,7 +217,10 @@ def verify_otp(request):
 
             send_otp_email(email, otp)
 
-            messages.success(request, "OTP has been resent.")
+            # Update the session with the new OTP sending time
+            request.session["otp_sent_time"] = datetime.now().isoformat()
+
+            messages.success(request, "OTP has been resend.")
 
         except OTP.DoesNotExist:
             messages.error(request, "No OTP record found. Please sign up again.")
@@ -220,3 +239,30 @@ def home(request):
     new_arrivals = get_new_arrivals(6)
 
     return render(request, "store/home.html", {"new_arrivals": new_arrivals})
+
+
+def products_listing(request):
+    brands = Brand.objects.filter(is_active=True)
+    products = get_new_arrivals()
+    return render(
+        request,
+        "store/products_list.html",
+        {"brands": brands, "productModel": Product, "products": products},
+    )
+
+
+def view_variant(request, variant_id):
+
+    variant = get_object_or_404(ProductVariant, id=variant_id)
+    product = variant.product
+    other_variants = product.variants.exclude(id=variant_id)
+    variant_images = variant.images.all()
+
+    context = {
+        "variant": variant,
+        "product": product,
+        "other_variants": other_variants,
+        "variant_images": variant_images,
+    }
+
+    return render(request, "store/variant_view.html", context)

@@ -1,393 +1,233 @@
 {% extends 'manager/base.html' %}
 
-{% block header %}Products{% endblock header %}
+{% block header %}
+  Products
+{% endblock %}
 
 {% block content %}
-<main class="p-6">
-  <div class="bg-gray-900 p-4 rounded-md">
-    <!-- Search Bar -->
-    <div class="mb-4 flex justify-between items-center">
-      <input
-        type="text"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md"
-        placeholder="Search"
-      />
-      <button
-        onclick="toggleModal()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md"
-      >
-        Add New Product
-      </button>
+  <main class="p-6">
+    <div class="bg-gray-900 p-4 rounded-md">
+      <!-- Search Bar -->
+      <div class="mb-4 flex justify-between items-center">
+        <input type="text" class="bg-gray-700 text-white px-4 py-2 rounded-md" placeholder="Search" />
+        <button onclick="toggleModal()" class="bg-blue-600 text-white px-4 py-2 rounded-md">Add New Product</button>
+      </div>
+
+      <!-- Products Table -->
+      <table class="w-full text-center text-sm bg-gray-800 rounded-md">
+        <thead class="bg-gray-700 text-gray-300">
+          <tr>
+            <th class="px-4 py-2">Product</th>
+            <th class="px-4 py-2">Brand</th>
+            <th class="px-4 py-2">Connectivity</th>
+            <th class="px-4 py-2">Type</th>
+            {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
+            {% comment %} <th class="px-4 py-2">Discount</th> {% endcomment %}
+            {% comment %} <th class="px-4 py-2">Discounted Price</th> {% endcomment %}
+            <th class="px-4 py-2">No. of Variants</th>
+            {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in page_obj %}
+            <tr class="border-b border-gray-700 text-white">
+              <td class="px-4 py-2">{{ product.name }}</td>
+              <td class="px-4 py-2">{{ product.brand.name }}</td>
+              <td class="px-4 py-2">{{ product.get_connectivity_display }}</td>
+              <td class="px-4 py-2">{{ product.get_type_display }}</td>
+              <!-- Discount -->
+              {% comment %} <td class="px-4 py-2">
+                {% if product.is_discount_active %}
+                  {{ product.discount_value }}
+                  {{ product.get_discount_type_display }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td> {% endcomment %}
+
+              <!-- Discounted Price -->
+              {% comment %} <td class="px-4 py-2">
+                {% if product.is_discount_active %}
+                  {{ product.discounted_price|floatformat:2 }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td> {% endcomment %}
+
+              <td class="px-4 py-2">{{ product.variant_count }}</td>
+              {% comment %} <td class="px-4 py-2">{{ product.price }}</td> {% endcomment %}
+              <td class="px-4 py-2">
+                {% if product.is_active %}
+                  <span class="text-green-400">Active</span>
+                {% else %}
+                  <span class="text-red-400">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 flex justify-center space-x-2">
+                <a href="{% url 'product_view' product.id %}" class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500" title="View"><i class="fas fa-eye"></i></a>
+                <script type="application/json" id="product-{{ product.id }}">
+                  {
+                      "id": "{{ product.id }}",
+                      "name": "{{ product.name }}",
+                      "brand": "{{ product.brand.id }}",
+                      "connectivity": "{{ product.connectivity }}",
+                      "product_type": "{{ product.type }}",
+                      "price": "{{ product.price }}",
+                      "description": "{{ product.description }}"
+                  }
+                </script>
+                <a onclick="toggleEditModal(JSON.parse(document.getElementById('product-{{ product.id }}').textContent))" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit"><i class="fas fa-edit"></i></a>
+                <!-- Block/Unblock Button -->
+                {% if product.is_active %}
+                  <a href="{% url 'toggle_product_status' product.id %}" class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500" title="Block"><i class="fas fa-ban"></i></a>
+                {% else %}
+                  <a href="{% url 'toggle_product_status' product.id %}" class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500" title="Unblock"><i class="fas fa-check-circle"></i></a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex justify-center space-x-2">
+        {% if page_obj.has_previous %}
+          <a href="?page=1" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Previous</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">First</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Previous</span>
+        {% endif %}
+
+        <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Last</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Next</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Last</span>
+        {% endif %}
+      </div>
     </div>
+  </main>
 
-    <!-- Products Table -->
-    <table class="w-full text-center text-sm bg-gray-800 rounded-md">
-      <thead class="bg-gray-700 text-gray-300">
-        <tr>
-          <th class="px-4 py-2">Product</th>
-          <th class="px-4 py-2">Brand</th>
-          <th class="px-4 py-2">Connectivity</th>
-          <th class="px-4 py-2">Type</th>
-          {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
-          {% comment %} <th class="px-4 py-2">Discount</th> {% endcomment %}
-          {% comment %} <th class="px-4 py-2">Discounted Price</th> {% endcomment %}
-          <th class="px-4 py-2">No. of Variants</th>
-          {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
-          <th class="px-4 py-2">Status</th>
-          <th class="px-4 py-2">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for product in page_obj %}
-        <tr class="border-b border-gray-700 text-white">
-          <td class="px-4 py-2">{{ product.name }}</td>
-          <td class="px-4 py-2">{{ product.brand.name }}</td>
-          <td class="px-4 py-2">{{ product.get_connectivity_display }}</td>
-          <td class="px-4 py-2">{{ product.get_type_display }}</td>
-          <!-- Discount -->
-          {% comment %} <td class="px-4 py-2">
-            {% if product.is_discount_active %} {{ product.discount_value }} {{
-            product.get_discount_type_display }} {% else %} N/A {% endif %}
-          </td> {% endcomment %}
-
-          <!-- Discounted Price -->
-          {% comment %} <td class="px-4 py-2">
-            {% if product.is_discount_active %}
-            {{product.discounted_price|floatformat:2}} {% else %} N/A {% endif %}
-          </td> {% endcomment %}
-
-          <td class="px-4 py-2">{{ product.variant_count }}</td>
-          {% comment %} <td class="px-4 py-2">{{ product.price }}</td> {% endcomment %}
-          <td class="px-4 py-2">
-            {% if product.is_active %}
-            <span class="text-green-400">Active</span>
-            {% else %}
-            <span class="text-red-400">Inactive</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-2 flex justify-center space-x-2">
-            <a
-              href="{% url 'product_view' product.id %}"
-              class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500"
-              title="View"
-            >
-              <i class="fas fa-eye"></i>
-            </a>
-            <script type="application/json" id="product-{{ product.id }}">
-              {
-                  "id": "{{ product.id }}",
-                  "name": "{{ product.name }}",
-                  "brand": "{{ product.brand.id }}",
-                  "connectivity": "{{ product.connectivity }}",
-                  "product_type": "{{ product.type }}",
-                  "price": "{{ product.price }}",
-                  "description": "{{ product.description }}"
-              }
-            </script>
-            <a
-              onclick="toggleEditModal(JSON.parse(document.getElementById('product-{{ product.id }}').textContent))"
-              class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
-              title="Edit"
-            >
-              <i class="fas fa-edit"></i>
-            </a>
-            <!-- Block/Unblock Button -->
-            {% if product.is_active %}
-            <a
-              href="{% url 'toggle_product_status' product.id %}"
-              class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500"
-              title="Block"
-            >
-              <i class="fas fa-ban"></i>
-            </a>
-            {% else %}
-            <a
-              href="{% url 'toggle_product_status' product.id %}"
-              class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500"
-              title="Unblock"
-            >
-              <i class="fas fa-check-circle"></i>
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <!-- Pagination -->
-    <div class="mt-4 flex justify-center space-x-2">
-      {% if page_obj.has_previous %}
-      <a
-        href="?page=1"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >First</a
-      >
-      <a
-        href="?page={{ page_obj.previous_page_number }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Previous</a
-      >
-      {% else %}
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >First</span
-      >
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Previous</span
-      >
-      {% endif %}
-
-      <span class="bg-gray-700 text-white px-4 py-2 rounded-md"
-        >{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span
-      >
-
-      {% if page_obj.has_next %}
-      <a
-        href="?page={{ page_obj.next_page_number }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Next</a
-      >
-      <a
-        href="?page={{ page_obj.paginator.num_pages }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Last</a
-      >
-      {% else %}
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Next</span
-      >
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Last</span
-      >
-      {% endif %}
+  <!-- Add Product Modal -->
+  <div id="addProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
+      <button onclick="toggleModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
+      <h2 class="text-xl text-white mb-4">Add Product</h2>
+      <form method="POST" enctype="multipart/form-data" action="{% url 'add_product' %}" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label for="name" class="block mb-2 text-white">Product Name</label>
+          <input type="text" id="name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product name" required />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="brand" class="block mb-2 text-white">Brand</label>
+            <select id="brand" name="brand" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled selected>Select a brand</option>
+              {% for brand in brands %}
+                <option value="{{ brand.id }}">{{ brand.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="connectivity" class="block mb-2 text-white">Connectivity</label>
+            <select id="connectivity" name="connectivity" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled selected>Select connectivity type</option>
+              {% for key, value in product.CONNECTIVITY_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="type" class="block mb-2 text-white">Type</label>
+            <select id="type" name="type" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled selected>Select type</option>
+              {% for key, value in product.TYPE_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="description" class="block mb-2 text-white">Description</label>
+          <textarea id="description" name="description" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product description"></textarea>
+        </div>
+        <div>
+          <label for="price" class="block mb-2 text-white">Price</label>
+          <input type="number" id="price" name="price" step="0.01" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product price" required />
+        </div>
+        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Product</button>
+      </form>
     </div>
   </div>
-</main>
 
-<!-- Add Product Modal -->
-<div
-  id="addProductModal"
-  class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden"
->
-  <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
-    <button
-      onclick="toggleModal()"
-      class="absolute top-2 right-2 text-white hover:text-gray-400"
-    >
-      &times;
-    </button>
-    <h2 class="text-xl text-white mb-4">Add Product</h2>
-    <form
-      method="POST"
-      enctype="multipart/form-data"
-      action="{% url 'add_product' %}"
-      class="space-y-4"
-    >
-      {% csrf_token %}
-      <div>
-        <label for="name" class="block mb-2 text-white">Product Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product name"
-          required
-        />
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label for="brand" class="block mb-2 text-white">Brand</label>
-          <select
-            id="brand"
-            name="brand"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled selected>Select a brand</option>
-            {% for brand in brands %}
-            <option value="{{ brand.id }}">{{ brand.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label for="connectivity" class="block mb-2 text-white">Connectivity</label>
-          <select
-            id="connectivity"
-            name="connectivity"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled selected>Select connectivity type</option>
-            {% for key, value in product.CONNECTIVITY_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label for="type" class="block mb-2 text-white">Type</label>
-          <select
-            id="type"
-            name="type"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled selected>Select type</option>
-            {% for key, value in product.TYPE_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div>
-        <label for="description" class="block mb-2 text-white">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product description"
-        ></textarea>
-      </div>
-      <div>
-        <label for="price" class="block mb-2 text-white">Price</label>
-        <input
-          type="number"
-          id="price"
-          name="price"
-          step="0.01"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product price"
-          required
-        />
-      </div>
-      <button
-        type="submit"
-        class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4"
-      >
-        Add Product
-      </button>
-    </form>
-  </div>
-</div>
-
-<script>
+  <script>
   function toggleModal() {
     const modal = document.getElementById("addProductModal");
     modal.classList.toggle("hidden");
   }
 </script>
 
-<!-- Edit Product Modal -->
-<div
-  id="editProductModal"
-  class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden"
->
-  <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
-    <button
-      onclick="toggleEditModal()"
-      class="absolute top-2 right-2 text-white hover:text-gray-400"
-    >
-      &times;
-    </button>
-    <h2 class="text-xl text-white mb-4">Edit Product</h2>
-    <form
-      method="POST"
-      enctype="multipart/form-data"
-      id="editProductForm"
-      class="space-y-4"
-    >
-      {% csrf_token %}
-      <div>
-        <label for="edit_name" class="block mb-2 text-white">Product Name</label>
-        <input
-          type="text"
-          id="edit_name"
-          name="name"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product name"
-          required
-        />
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <!-- Edit Product Modal -->
+  <div id="editProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
+      <button onclick="toggleEditModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
+      <h2 class="text-xl text-white mb-4">Edit Product</h2>
+      <form method="POST" enctype="multipart/form-data" id="editProductForm" class="space-y-4">
+        {% csrf_token %}
         <div>
-          <label for="edit_brand" class="block mb-2 text-white">Brand</label>
-          <select
-            id="edit_brand"
-            name="brand"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled>Select a brand</option>
-            {% for brand in brands %}
-            <option value="{{ brand.id }}">{{ brand.name }}</option>
-            {% endfor %}
-          </select>
+          <label for="edit_name" class="block mb-2 text-white">Product Name</label>
+          <input type="text" id="edit_name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product name" required />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="edit_brand" class="block mb-2 text-white">Brand</label>
+            <select id="edit_brand" name="brand" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled>Select a brand</option>
+              {% for brand in brands %}
+                <option value="{{ brand.id }}">{{ brand.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="edit_connectivity" class="block mb-2 text-white">Connectivity</label>
+            <select id="edit_connectivity" name="connectivity" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled>Select connectivity type</option>
+              {% for key, value in product.CONNECTIVITY_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="edit_type" class="block mb-2 text-white">Type</label>
+            <select id="edit_type" name="type" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+              <option value="" disabled>Select type</option>
+              {% for key, value in product.TYPE_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
         <div>
-          <label for="edit_connectivity" class="block mb-2 text-white">Connectivity</label>
-          <select
-            id="edit_connectivity"
-            name="connectivity"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled>Select connectivity type</option>
-            {% for key, value in product.CONNECTIVITY_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
+          <label for="edit_description" class="block mb-2 text-white">Description</label>
+          <textarea id="edit_description" name="description" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product description"></textarea>
         </div>
         <div>
-          <label for="edit_type" class="block mb-2 text-white">Type</label>
-          <select
-            id="edit_type"
-            name="type"
-            class="w-full bg-gray-800 p-2 rounded-md text-white"
-            required
-          >
-            <option value="" disabled>Select type</option>
-            {% for key, value in product.TYPE_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
+          <label for="edit_price" class="block mb-2 text-white">Price</label>
+          <input type="number" id="edit_price" name="price" step="0.01" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product price" required />
         </div>
-      </div>
-      <div>
-        <label for="edit_description" class="block mb-2 text-white">Description</label>
-        <textarea
-          id="edit_description"
-          name="description"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product description"
-        ></textarea>
-      </div>
-      <div>
-        <label for="edit_price" class="block mb-2 text-white">Price</label>
-        <input
-          type="number"
-          id="edit_price"
-          name="price"
-          step="0.01"
-          class="w-full bg-gray-800 p-2 rounded-md text-white"
-          placeholder="Enter product price"
-          required
-        />
-      </div>
-      <button
-        type="submit"
-        class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4"
-      >
-        Update Product
-      </button>
-    </form>
+        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Update Product</button>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
+  <script>
   function toggleEditModal(productData) {
     const modal = document.getElementById("editProductModal");
     modal.classList.toggle("hidden");
@@ -405,5 +245,4 @@
     }
   }
 </script>
-
-{% endblock content %}
+{% endblock %}

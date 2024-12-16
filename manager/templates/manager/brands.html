@@ -1,167 +1,170 @@
-{% extends 'manager/base.html' %} {% block header %}Brands{% endblock header %}
+{% extends 'manager/base.html' %} {% block header %}
+  Brands
+{% endblock %}
 {% block content %}
-<main class="p-6">
-  <div class="bg-gray-900 p-4 rounded-md">
-    <!-- Search Bar -->
-    <div class="mb-4 flex justify-between items-center">
-      <input
-        type="text"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md"
-        placeholder="Search"
-      />
-      <button
-        id="add-brand-btn"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md"
-        data-modal-toggle="add-brand-modal"
-        >Add New Brand
-      </button>
+  <main class="p-6">
+    <div class="bg-gray-900 p-4 rounded-md">
+      <!-- Search Bar -->
+      <div class="mb-4 flex justify-between items-center">
+        <input type="text" class="bg-gray-700 text-white px-4 py-2 rounded-md" placeholder="Search" />
+        <button id="add-brand-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md" data-modal-toggle="add-brand-modal">Add New Brand</button>
+      </div>
+
+      <!-- Brands Table -->
+      <table class="w-full text-center text-sm bg-gray-800 rounded-md">
+        <thead class="bg-gray-700 text-gray-300">
+          <tr>
+            <th class="px-4 py-2">Brand</th>
+            <th class="px-4 py-2">No. of Products</th>
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for brand in page_obj %}
+            <tr class="border-b border-gray-700 text-white">
+              <td class="px-4 py-2">{{ brand.name }}</td>
+              <td class="px-4 py-2">{{ brand.product_count }}</td>
+              <td class="px-4 py-2">
+                {% if brand.is_active %}
+                  <span class="text-green-500">Active</span>
+                {% else %}
+                  <span class="text-red-500">Inactive</span>
+                {% endif %}
+              </td>
+              <!-- Actions -->
+              <td class="px-4 py-2 justify-center flex space-x-2">
+                <!-- Edit Button -->
+                <script type="application/json" id="brand-{{ brand.id }}">
+                  {
+                      "id": "{{ brand.id }}",
+                      "name": "{{ brand.name }}"
+                  }
+              </script>
+                <a onclick="toggleEditBrandModal(JSON.parse(document.getElementById('brand-{{ brand.id }}').textContent))" href="#" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit"><i class="fas fa-edit"></i></a>
+                <!-- Block/Unblock Button -->
+                {% if brand.is_active %}
+                  <a href="{% url 'toggle_brand_status' brand.id %}" class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500" title="Block"><i class="fas fa-ban"></i></a>
+                {% else %}
+                  <a href="{% url 'toggle_brand_status' brand.id %}" class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500" title="Unblock"><i class="fas fa-check-circle"></i></a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex justify-center space-x-2">
+        {% if page_obj.has_previous %}
+          <a href="?page=1" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Previous</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">First</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Previous</span>
+        {% endif %}
+
+        <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Last</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Next</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Last</span>
+        {% endif %}
+      </div>
     </div>
+  </main>
 
-    <!-- Brands Table -->
-    <table class="w-full text-center text-sm bg-gray-800 rounded-md">
-      <thead class="bg-gray-700 text-gray-300">
-        <tr>
-          <th class="px-4 py-2">Brand</th>
-          <th class="px-4 py-2">No. of Products</th>
-          <th class="px-4 py-2">Status</th>
-          <th class="px-4 py-2">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for brand in page_obj %}
-        <tr class="border-b border-gray-700 text-white">
-          <td class="px-4 py-2">{{ brand.name }}</td>
-          <td class="px-4 py-2">{{ brand.product_count }}</td>
-          <td class="px-4 py-2">
-            {% if brand.is_active %}
-            <span class="text-green-500">Active</span>
-            {% else %}
-            <span class="text-red-500">Inactive</span>
-            {% endif %}
-          </td>
-          <!-- Actions -->
-          <td class="px-4 py-2 justify-center flex space-x-2">
-            <!-- Edit Button -->
-            <a
-              href=""
-              class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500"
-              title="Edit"
-            >
-              <i class="fas fa-edit"></i>
-            </a>
-            <!-- Block/Unblock Button -->
-            {% if brand.is_active %}
-            <a
-              href="{% url 'toggle_brand_status' brand.id %}"
-              class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500"
-              title="Block"
-            >
-              <i class="fas fa-ban"></i>
-            </a>
-            {% else %}
-            <a
-              href="{% url 'toggle_brand_status' brand.id %}"
-              class="bg-yellow-600 px-3 py-1 rounded-md text-white hover:bg-yellow-500"
-              title="Unblock"
-            >
-              <i class="fas fa-check-circle"></i>
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <!-- Pagination -->
-    <div class="mt-4 flex justify-center space-x-2">
-      {% if page_obj.has_previous %}
-      <a
-        href="?page=1"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >First</a
-      >
-      <a
-        href="?page={{ page_obj.previous_page_number }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Previous</a
-      >
-      {% else %}
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >First</span
-      >
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Previous</span
-      >
-      {% endif %}
-
-      <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-
-      {% if page_obj.has_next %}
-      <a
-        href="?page={{ page_obj.next_page_number }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Next</a
-      >
-      <a
-        href="?page={{ page_obj.paginator.num_pages }}"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >Last</a
-      >
-      {% else %}
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Next</span
-      >
-      <span
-        class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed"
-        >Last</span
-      >
-      {% endif %}
+  <!-- Modal for Add New Brand -->
+  <div id="add-brand-modal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-md w-96">
+      <h2 class="text-lg text-white mb-4">Add New Brand</h2>
+      <form method="POST" action="{% url 'add_brand' %}" id="add-brand-form">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label for="brand-name" class="text-white">Brand Name</label>
+          <input type="text" name="name" id="brand-name" class="bg-gray-700 text-white px-4 py-2 rounded-md w-full" placeholder="Enter brand name" required />
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="close-modal" class="bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Add Brand</button>
+        </div>
+      </form>
     </div>
   </div>
-</main>
-
-<!-- Modal for Add New Brand -->
-<div id="add-brand-modal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-  <div class="bg-gray-800 p-6 rounded-md w-96">
-    <h2 class="text-lg text-white mb-4">Add New Brand</h2>
-    <form method="POST" action="{% url 'add_brand' %}" id="add-brand-form">
-      {% csrf_token %}
-      <div class="mb-4">
-        <label for="brand-name" class="text-white">Brand Name</label>
-        <input type="text" name="name" id="brand-name" class="bg-gray-700 text-white px-4 py-2 rounded-md w-full" placeholder="Enter brand name" required>
-      </div>
-      <div class="flex justify-end space-x-2">
-        <button type="button" id="close-modal" class="bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</button>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Add Brand</button>
-      </div>
-    </form>
+  <!-- Modal for Add New Brand -->
+  <div id="edit-brand-modal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-md w-96">
+      <h2 class="text-lg text-white mb-4">Edit Brand</h2>
+      <form method="POST" action="{% url 'edit_brand' 0 %}" id="edit-brand-form">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="brand-id" />
+        <div class="mb-4">
+          <label for="edit-brand-name" class="text-white">Brand Name</label>
+          <input type="text" name="name" id="edit-brand-name" class="bg-gray-700 text-white px-4 py-2 rounded-md w-full" placeholder="Enter brand name" required />
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="close-edit-modal" class="bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Save Changes</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
-
-{% endblock content %}
+{% endblock %}
 {% block script %}
-<script>
-  document.getElementById('add-brand-btn').addEventListener('click', function() {
-    document.getElementById('add-brand-modal').classList.remove('hidden');
+  <script>
+    document.getElementById('add-brand-btn').addEventListener('click', function () {
+      document.getElementById('add-brand-modal').classList.remove('hidden')
+    })
+    
+    document.getElementById('close-modal').addEventListener('click', function () {
+      document.getElementById('add-brand-modal').classList.add('hidden')
+    })
+    
+    // Prevent closing the modal if there are form validation errors
+    document.getElementById('add-brand-form').addEventListener('submit', function (event) {
+      const form = event.target
+      const brandName = form.querySelector('#brand-name').value.trim()
+    
+      if (!brandName) {
+        event.preventDefault()
+        alert('Brand name is required.')
+      }
+    })
+  </script>
+  <script>
+    function toggleEditBrandModal(brandData) {
+      const editModal = document.getElementById('edit-brand-modal');
+      const brandIdInput = document.getElementById('brand-id');
+      const brandNameInput = document.getElementById('edit-brand-name');
+      const form = document.getElementById('edit-brand-form');
+  
+      // Populate modal fields
+      brandIdInput.value = brandData.id;
+      brandNameInput.value = brandData.name;
+  
+      // Update form action dynamically
+      form.action = `/manager/brand/edit/${brandData.id}/`;
+  
+      // Show the modal
+      editModal.classList.remove('hidden');
+  }
+  
+  // Close modal
+  document.getElementById('close-edit-modal').addEventListener('click', function () {
+      document.getElementById('edit-brand-modal').classList.add('hidden');
   });
-
-  document.getElementById('close-modal').addEventListener('click', function() {
-    document.getElementById('add-brand-modal').classList.add('hidden');
+  
+  // Form validation
+  document.getElementById('edit-brand-form').addEventListener('submit', function (event) {
+      const brandName = document.getElementById('edit-brand-name').value.trim();
+  
+      if (!brandName) {
+          event.preventDefault();
+          alert('Brand name is required.');
+      }
   });
-
-  // Prevent closing the modal if there are form validation errors
-  document.getElementById('add-brand-form').addEventListener('submit', function(event) {
-    const form = event.target;
-    const brandName = form.querySelector('#brand-name').value.trim();
-
-    if (!brandName) {
-      event.preventDefault();
-      alert('Brand name is required.');
-    }
-  });
-</script>
-{% endblock  %}
+  </script>
+{% endblock %}

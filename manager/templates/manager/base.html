@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Echo{% endblock %}</title>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-      rel="stylesheet"
-    />
+    <title>
+      {% block title %}
+        Echo
+      {% endblock %}
+    </title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
 
     <!-- Tailwind CSS link -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,19 +20,20 @@
     </style>
     <script>
       // Close the message bar when the close button is clicked
-      document.addEventListener("DOMContentLoaded", () => {
-        const closeButton = document.getElementById("close-message");
-        const messageBar = document.getElementById("message-bar");
-
+      document.addEventListener('DOMContentLoaded', () => {
+        const closeButton = document.getElementById('close-message')
+        const messageBar = document.getElementById('message-bar')
+      
         if (closeButton) {
-          closeButton.addEventListener("click", () => {
-            messageBar.style.display = "none";
-          });
+          closeButton.addEventListener('click', () => {
+            messageBar.style.display = 'none'
+          })
         }
-      });
+      })
     </script>
     <!-- Page-specific styles -->
-    {% block style %}{% endblock %}
+    {% block style %}
+    {% endblock %}
   </head>
   <body class="bg-gray-100 text-gray-800">
     <div class="flex h-screen">
@@ -42,94 +44,109 @@
           <nav>
             <ul class="space-y-4">
               <li>
-                <a
-                  href="{% url 'dashboard' %}"
-                  class="flex items-center {% if request.resolver_match.url_name == 'dashboard' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="{% url 'dashboard' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'dashboard' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🏠</span> Dashboard
                 </a>
               </li>
               <li>
-                <a
-                  href="{% url 'products' %}"
-                  class="flex items-center {% if request.resolver_match.url_name == 'products' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="{% url 'products' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'products' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">📦</span> Products
                 </a>
               </li>
               <li>
-                <a
-                  href="{% url 'brands' %}"
-                  class="flex items-center {% if request.resolver_match.url_name == 'brands' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="{% url 'brands' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'brands' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🏷️</span> Brands
                 </a>
               </li>
               <li>
-                <a
-                  href="{% url 'users' %}"
-                  class="flex items-center {% if request.resolver_match.url_name == 'users' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="{% url 'users' %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'users' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">👥</span> Users
                 </a>
               </li>
               {% comment %}
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'orders' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'orders' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🛒</span> Orders
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🏷️</span> Coupons
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'connectivity' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'connectivity' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🔗</span> Connectivity
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'offers' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'offers' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🎁</span> Offers
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'banner' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'banner' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">🖼️</span> Banner
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'sales_report' %}text-white{% else %}text-gray-400{% endif %} hover:text-white"
-                >
+                <a href="#"
+                  class="flex items-center {% if request.resolver_match.url_name == 'sales_report' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
                   <span class="mr-2">📊</span> Sales Report
                 </a>
               </li>
               {% endcomment %}
               <li>
-                <a
-                  href="{% url 'admin_logout' %}"
-                  class="flex items-center text-gray-400 hover:text-white"
-                >
-                  <span class="mr-2">🔒</span> Logout
-                </a>
+                <a href="{% url 'admin_logout' %}" class="flex items-center text-gray-400 hover:text-white"><span class="mr-2">🔒</span> Logout</a>
               </li>
             </ul>
           </nav>
@@ -141,7 +158,9 @@
         <!-- Header -->
         <header class="bg-gray-800 text-white px-6 py-4">
           <h1 class="text-xl font-semibold">
-            {% block header %}Welcome to Echo{% endblock %}
+            {% block header %}
+              Welcome to Echo
+            {% endblock %}
           </h1>
         </header>
 
@@ -149,32 +168,25 @@
         <main class="flex-1 p-6 bg-gray-100 scrollable-content">
           <!-- Message Bar -->
           {% if messages %}
-          <div id="message-bar" class="w-full z-50">
-            <div
-              class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between"
-            >
-              <div>
-                {% for message in messages %}
-                <p>{{ message }}</p>
-                {% endfor %}
+            <div id="message-bar" class="w-full z-50">
+              <div class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between">
+                <div>
+                  {% for message in messages %}
+                    <p>{{ message }}</p>
+                  {% endfor %}
+                </div>
+                <button id="close-message" class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4" aria-label="Close Message">×</button>
               </div>
-              <button
-                id="close-message"
-                class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4"
-                aria-label="Close Message"
-              >
-                ×
-              </button>
             </div>
-          </div>
           {% endif %}
           {% block content %}
-          <p>Page content goes here.</p>
+            <p>Page content goes here.</p>
           {% endblock %}
         </main>
       </div>
     </div>
     <!-- Page-specific scripts -->
-    {% block script %}{% endblock %}
+    {% block script %}
+    {% endblock %}
   </body>
 </html>

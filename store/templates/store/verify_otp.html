@@ -35,8 +35,7 @@
   }
 
   .resend-enabled {
-    color: blue;
-    font-weight: bold;
+    color: black;
     cursor: pointer;
   }
 </style>
@@ -61,20 +60,28 @@
       });
     });
 
-    // Persistent Countdown Timer
+    // Timer and Resend OTP Logic
     const countdownElement = document.getElementById("countdown");
-    const resendLink = document.querySelector(".resend-otp");
+    const resendLink = document.getElementById("resend-otp");
     const TIMER_KEY = "otp_timer_remaining";
-    let countdown = localStorage.getItem(TIMER_KEY) || 59; // Load timer from localStorage or set default
+    const RESEND_DISABLED_KEY = "resend_disabled";
+    let countdown = parseInt(localStorage.getItem(TIMER_KEY)) || 59; // Load timer or set default
+    let resendDisabled = localStorage.getItem(RESEND_DISABLED_KEY) === "true";
+
+    // Initialize Resend Button State
+    resendDisabled = resendDisabled === "true" || countdown > 0; // Disabled if timer > 0 or stored as disabled
+
 
     // Update Resend Button Status
     function updateResendStatus() {
-      if (countdown > 0) {
+      if (resendDisabled) {
         resendLink.classList.add("resend-disabled");
         resendLink.classList.remove("resend-enabled");
+        resendLink.style.pointerEvents = "none";
       } else {
-        resendLink.classList.add("resend-enabled");
         resendLink.classList.remove("resend-disabled");
+        resendLink.classList.add("resend-enabled");
+        resendLink.style.pointerEvents = "auto";
       }
     }
 
@@ -83,7 +90,9 @@
       if (countdown <= 0) {
         clearInterval(interval);
         countdownElement.textContent = "Resend OTP Available";
+        resendDisabled = false;
         localStorage.removeItem(TIMER_KEY); // Clear timer from localStorage
+        localStorage.setItem(RESEND_DISABLED_KEY, "false");
         updateResendStatus();
       } else {
         const seconds = countdown % 60;
@@ -95,9 +104,26 @@
 
     // Initial Update of Resend Status
     updateResendStatus();
+
+    // Resend OTP Click Handler
+    resendLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!resendDisabled) {
+        countdown = 59; // Restart timer
+        resendDisabled = true; // Disable resend button
+        localStorage.setItem(TIMER_KEY, countdown); // Save timer state
+        localStorage.setItem(RESEND_DISABLED_KEY, "true");
+        countdownElement.textContent = "00:59"; // Reset display
+        updateResendStatus();
+
+        // Redirect to resend OTP logic
+        window.location.href = resendLink.getAttribute("href");
+      }
+    });
   });
 </script>
 {% endblock %}
+
 
 {% block content %}
 <div class="flex flex-col md:flex-row items-center justify-center">

@@ -7,31 +7,28 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet" />
     <script>
       // Close the message bar when the close button is clicked
-      document.addEventListener("DOMContentLoaded", () => {
-        const closeButton = document.getElementById("close-message");
-        const messageBar = document.getElementById("message-bar");
-
+      document.addEventListener('DOMContentLoaded', () => {
+        const closeButton = document.getElementById('close-message')
+        const messageBar = document.getElementById('message-bar')
+      
         if (closeButton) {
-          closeButton.addEventListener("click", () => {
-            messageBar.style.display = "none";
-          });
+          closeButton.addEventListener('click', () => {
+            messageBar.style.display = 'none'
+          })
         }
-      });
+      })
     </script>
 
     <style>
       /* Custom Fonts */
       .font-ubuntu {
-        font-family: "Ubuntu", sans-serif;
+        font-family: 'Ubuntu', sans-serif;
       }
       .font-roboto {
-        font-family: "Roboto", sans-serif;
+        font-family: 'Roboto', sans-serif;
       }
     </style>
   </head>
@@ -44,24 +41,16 @@
 
       <!-- Message Bar -->
       {% if messages %}
-      <div id="message-bar" class="fixed left-0 w-full z-50">
-        <div
-          class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between"
-        >
-          <div>
-            {% for message in messages %}
-            <p>{{ message }}</p>
-            {% endfor %}
+        <div id="message-bar" class="fixed left-0 w-full z-50">
+          <div class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between">
+            <div>
+              {% for message in messages %}
+                <p>{{ message }}</p>
+              {% endfor %}
+            </div>
+            <button id="close-message" class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4" aria-label="Close Message">×</button>
           </div>
-          <button
-            id="close-message"
-            class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4"
-            aria-label="Close Message"
-          >
-            ×
-          </button>
         </div>
-      </div>
       {% endif %}
     </header>
 
@@ -72,42 +61,15 @@
         <form method="post">
           {% csrf_token %}
           <div class="mb-4">
-            <label
-              class="block text-gray-700 text-sm font-bold mb-2"
-              for="email"
-            >
-              Email
-            </label>
-            <input
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="email"
-              type="text"
-              name="email"
-              placeholder="Enter your email"
-            />
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="email">Email</label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="text" name="email" placeholder="Enter your email" />
           </div>
           <div class="mb-4">
-            <label
-              class="block text-gray-700 text-sm font-bold mb-2"
-              for="password"
-            >
-              Password
-            </label>
-            <input
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="password"
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-            />
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="password">Password</label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="password" type="password" name="password" placeholder="Enter your password" />
           </div>
           <div class="flex items-center justify-between">
-            <button
-              class="bg-gray-800 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline"
-              type="submit"
-            >
-              Login
-            </button>
+            <button class="bg-gray-800 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline" type="submit">Login</button>
           </div>
         </form>
       </div>

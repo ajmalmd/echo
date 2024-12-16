@@ -20,10 +20,7 @@ class Product(models.Model):
         ("multi", "Multi-functional"),
     ]
 
-    TYPE_CHOICES = [
-        ("in_ear", "In the Ear"),
-        ("over_ear", "Over the Ear")
-    ]
+    TYPE_CHOICES = [("in_ear", "In the Ear"), ("over_ear", "Over the Ear")]
 
     DISCOUNT_TYPE_CHOICES = [
         ("percentage", "Percentage"),

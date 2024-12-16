@@ -49,7 +49,6 @@ def admin_logout(request):
 @user_passes_test(is_staff_user)
 @never_cache
 def dashboard(request):
-    print(request.user.is_staff)
     return render(request, "manager/dashboard.html")
 
 
@@ -123,7 +122,38 @@ def add_brand(request):
         messages.success(request, "Brand added successfully.")
         return redirect("brands")  # Redirect to the brand list page
 
-    return render(request, "manager/brands.html")
+    return redirect("brands")
+
+
+@user_passes_test(is_staff_user)
+def edit_brand(request, brand_id):
+    brand = get_object_or_404(Brand, id=brand_id)
+    if request.method == "POST":
+        new_name = request.POST.get("name")
+
+        # Validate the new brand name
+        if not is_valid_name(new_name):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return redirect("brands")
+
+        # Check if a different brand already has this name
+        if Brand.objects.filter(name=new_name).exclude(id=brand_id).exists():
+            messages.error(request, "Brand with this name already exists.")
+            return redirect("brands")
+
+        # Update the brand
+        try:
+            brand.name = new_name
+            brand.save()
+            messages.success(request, "Brand updated successfully.")
+        except Brand.DoesNotExist:
+            messages.error(request, "Brand not found.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+
+        return redirect("brands")
+
+    return redirect("brands")
 
 
 @user_passes_test(is_staff_user)

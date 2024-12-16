@@ -1,101 +1,66 @@
-{% extends "manager/base.html" %} {% block header %}Add Product{% endblock header %}
-{%block content %}
-<main class="p-6">
-  <div class="bg-gray-900 p-6 rounded-md text-white">
-    <h2 class="text-lg font-semibold mb-4">Add a New Product</h2>
+{% extends 'manager/base.html' %}
+{% block header %}
+  Add Product
+{% endblock %}
+{% block content %}
+  <main class="p-6">
+    <div class="bg-gray-900 p-6 rounded-md text-white">
+      <h2 class="text-lg font-semibold mb-4">Add a New Product</h2>
 
-    <form
-      method="POST"
-      enctype="multipart/form-data"
-      action="{% url 'add_product' %}"
-      class="space-y-4"
-    >
-      {% csrf_token %}
+      <form method="POST" enctype="multipart/form-data" action="{% url 'add_product' %}" class="space-y-4">
+        {% csrf_token %}
 
-      <!-- Product Name -->
-      <div>
-        <label for="name" class="block mb-2">Product Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          class="w-full bg-gray-800 p-2 rounded-md"
-          placeholder="Enter product name"
-          required
-        />
-      </div>
-
-      <!-- Brand, Connectivity, Type (Responsive Grid) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- Brand -->
+        <!-- Product Name -->
         <div>
-          <label for="brand" class="block mb-2">Brand</label>
-          <select
-            id="brand"
-            name="brand"
-            class="w-full bg-gray-800 p-2 rounded-md"
-            required
-          >
-            <option value="" disabled selected>Select a brand</option>
-            {% for brand in brands %}
-            <option value="{{ brand.id }}">{{ brand.name }}</option>
-            {% endfor %}
-          </select>
+          <label for="name" class="block mb-2">Product Name</label>
+          <input type="text" id="name" name="name" class="w-full bg-gray-800 p-2 rounded-md" placeholder="Enter product name" required />
         </div>
 
-        <!-- Connectivity -->
-        <div>
-          <label for="connectivity" class="block mb-2">Connectivity</label>
-          <select
-            id="connectivity"
-            name="connectivity"
-            class="w-full bg-gray-800 p-2 rounded-md"
-            required
-          >
-            <option value="" disabled selected>Select connectivity type</option>
-            {% for key, value in product.CONNECTIVITY_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
+        <!-- Brand, Connectivity, Type (Responsive Grid) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Brand -->
+          <div>
+            <label for="brand" class="block mb-2">Brand</label>
+            <select id="brand" name="brand" class="w-full bg-gray-800 p-2 rounded-md" required>
+              <option value="" disabled selected>Select a brand</option>
+              {% for brand in brands %}
+                <option value="{{ brand.id }}">{{ brand.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Connectivity -->
+          <div>
+            <label for="connectivity" class="block mb-2">Connectivity</label>
+            <select id="connectivity" name="connectivity" class="w-full bg-gray-800 p-2 rounded-md" required>
+              <option value="" disabled selected>Select connectivity type</option>
+              {% for key, value in product.CONNECTIVITY_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Type -->
+          <div>
+            <label for="type" class="block mb-2">Type</label>
+            <select id="type" name="type" class="w-full bg-gray-800 p-2 rounded-md" required>
+              <option value="" disabled selected>Select type</option>
+              {% for key, value in product.TYPE_CHOICES %}
+                <option value="{{ key }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
 
-        <!-- Type -->
+        <!-- Description -->
         <div>
-          <label for="type" class="block mb-2">Type</label>
-          <select
-            id="type"
-            name="type"
-            class="w-full bg-gray-800 p-2 rounded-md"
-            required
-          >
-            <option value="" disabled selected>Select type</option>
-            {% for key, value in product.TYPE_CHOICES %}
-            <option value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-          </select>
+          <label for="description" class="block mb-2">Description</label>
+          <textarea id="description" name="description" class="w-full bg-gray-800 p-2 rounded-md" placeholder="Enter product description" required></textarea>
         </div>
-      </div>
 
-      <!-- Description -->
-      <div>
-        <label for="description" class="block mb-2">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          class="w-full bg-gray-800 p-2 rounded-md"
-          placeholder="Enter product description"
-          required
-        ></textarea>
-      </div>
-
-      <!-- Submit Button -->
-      <button
-        type="submit"
-        class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4"
-      >
-        Add Product
-      </button>
-    </form>
-  </div>
-</main>
-{% endblock content%}
+        <!-- Submit Button -->
+        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Product</button>
+      </form>
+    </div>
+  </main>
+{% endblock %}
