@@ -29,17 +29,23 @@ def user_login(request):
         password = request.POST.get("password")
         user = authenticate(request, email=email, password=password)
 
-        if user is not None and not user.is_staff and not user.is_active:
-            messages.error(request, "Your account is blocked.")
-            return render(request, "store/login.html", {"email": email})
-
-        if user is not None and not user.is_staff and user.is_active:
-            login(request, user)
-            return redirect(next_url)
-
+        if user:
+            if user.is_active and not user.is_staff:
+                login(request, user)
+                return redirect(next_url)
+            else:
+                # User is inactive
+                messages.error(request, "No permission for staffs")
         else:
-            messages.error(request, "Invalid email or password.")
-            return render(request, "store/login.html", {"email": email})
+            # If authentication fails, check if user exists
+            try:
+                user = User.objects.get(email=email)
+                if not user.is_active:
+                    messages.error(request, "Your account is inactive. Please contact support.")
+                else:
+                    messages.error(request, "Invalid email or password.")
+            except User.DoesNotExist:
+                messages.error(request, "Invalid email or password.")
 
     return render(request, "store/login.html")
 
