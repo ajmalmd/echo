@@ -5,12 +5,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from .utils import paginate_items
-from .models import Brand, Product, ProductVariant
+from .models import Brand, Product, ProductVariant, ProductImage
 from store.validators import is_valid_name
 from store.models import User
 from django.contrib import messages
 from django.db.models import Count
 from django.contrib.auth.decorators import user_passes_test
+from cloudinary.uploader import upload as cloudinary_upload
 
 
 def is_staff_user(user):
@@ -282,3 +283,47 @@ def edit_product(request, product_id):
         return redirect(reverse("product_view", args=[product.id]))
 
     return redirect("products")
+
+
+def add_variant(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    # Extract form data
+    name = request.POST.get("name")
+    price = request.POST.get("price")
+    stock = request.POST.get("stock")
+
+    # Validate required fields
+    if not name or not price or not stock:
+        messages.error(request, "All fields are required.")
+        return redirect(request.META.get("HTTP_REFERER", "products"))
+
+    try:
+        # Create the variant
+        variant = ProductVariant.objects.create(
+            product=product,
+            name=name,
+            price=price,
+            stock=stock,
+            created_by=request.user,
+        )
+
+        # Handle images
+        images = request.FILES.getlist("product_images")
+        if len(images) < 3:
+            messages.error(request, "You must upload at least 3 images.")
+            variant.delete()  # Clean up the created variant
+            return redirect(request.META.get("HTTP_REFERER", "products"))
+
+        for image in images[:7]:  # Allow up to 7 images
+            uploaded_image = cloudinary_upload(image)
+            ProductImage.objects.create(
+                product_variant=variant, image_path=uploaded_image["secure_url"]
+            )
+
+        messages.success(request, "Variant added successfully!")
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
+        return redirect(request.META.get("HTTP_REFERER", "products"))
+
+    return redirect("product_view", product_id=product.id)

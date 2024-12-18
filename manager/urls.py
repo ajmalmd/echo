@@ -19,7 +19,8 @@ urlpatterns = [
     path("products/edit/<int:product_id>/", views.edit_product, name="edit_product"),
     path("product/<int:product_id>/toggle-status/", views.toggle_product_status, name="toggle_product_status"),
     
-    path('products/view/<int:product_id>/', views.product_view, name='product_view'),
+    path('product/<int:product_id>/', views.product_view, name='product_view'),
     path("variant/<int:variant_id>/toggle-status/", views.toggle_variant_status, name="toggle_variant_status"),
+    path("products/<int:product_id>/add-variant/", views.add_variant, name="add_variant"),
     
 ]

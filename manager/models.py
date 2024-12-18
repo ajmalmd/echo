@@ -22,17 +22,11 @@ class Product(models.Model):
 
     TYPE_CHOICES = [("in_ear", "In the Ear"), ("over_ear", "Over the Ear")]
 
-    DISCOUNT_TYPE_CHOICES = [
-        ("percentage", "Percentage"),
-        ("fixed", "Fixed Amount"),
-    ]
-
     name = models.CharField(max_length=255)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="products")
     description = models.TextField()
     connectivity = models.CharField(max_length=20, choices=CONNECTIVITY_CHOICES)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
@@ -43,31 +37,17 @@ class Product(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name="updated_products"
     )
 
-    # Discount fields
-    discount_type = models.CharField(
-        max_length=20, choices=DISCOUNT_TYPE_CHOICES, null=True, blank=True
-    )
-    discount_value = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
-    is_discount_active = models.BooleanField(default=False)
-
     def __str__(self):
         return self.name
 
-    def discounted_price(self):
-        """Returns the price after applying the product-level discount."""
-        if self.is_discount_active and self.discount_value:
-            if self.discount_type == "percentage":
-                discount_amount = (self.discount_value / 100) * self.price
-                return max(self.price - discount_amount, 0)
-            elif self.discount_type == "fixed":
-                return max(self.price - self.discount_value, 0)
-        return self.price  # No discount applied
 
-
-# Product Variant Model
+# ProductVariant Model
 class ProductVariant(models.Model):
+    DISCOUNT_TYPE_CHOICES = [
+        ("percentage", "Percentage"),
+        ("fixed", "Fixed Amount"),
+    ]
+
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="variants"
     )
@@ -86,7 +66,7 @@ class ProductVariant(models.Model):
 
     # Discount fields
     discount_type = models.CharField(
-        max_length=20, choices=Product.DISCOUNT_TYPE_CHOICES, null=True, blank=True
+        max_length=20, choices=DISCOUNT_TYPE_CHOICES, null=True, blank=True
     )
     discount_value = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
@@ -101,7 +81,7 @@ class ProductVariant(models.Model):
                 return max(self.price - discount_amount, 0)
             elif self.discount_type == "fixed":
                 return max(self.price - self.discount_value, 0)
-        return self.product.discounted_price()  # Fallback to product-level discount
+        return self.price  # No discount applied
 
     def __str__(self):
         return f"{self.name} - {self.product.name}"

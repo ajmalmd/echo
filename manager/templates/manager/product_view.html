@@ -1,4 +1,5 @@
-{% extends 'manager/base.html' %} {% block header %}
+{% extends 'manager/base.html' %}
+{% block header %}
   Product Details
 {% endblock %}
 {% block content %}
@@ -23,9 +24,6 @@
         </p>
         <p class="mb-2">
           <strong>Connectivity:</strong> {{ product.get_connectivity_display }}
-        </p>
-        <p class="mb-2">
-          <strong>Price:</strong> {{ product.discounted_price }}
         </p>
         <p class="mb-4">
           <strong>Description:</strong> {{ product.description }}
@@ -87,10 +85,189 @@
     </div>
   </main>
 
+  <!-- Add Variant Modal -->
+  <div id="addVariantModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
+      <button onclick="toggleModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
+      <h2 class="text-xl text-white mb-4">Add Product Variant</h2>
+      <form id="addVariantForm" method="POST" enctype="multipart/form-data" action="{% url 'add_variant' product.id %}" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label for="variant_name" class="block mb-2 text-white">Variant Name</label>
+          <input type="text" id="variant_name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant name" required />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="variant_price" class="block mb-2 text-white">Price</label>
+            <input type="number" id="variant_price" name="price" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant price" required />
+          </div>
+          <div>
+            <label for="variant_stock" class="block mb-2 text-white">Stock</label>
+            <input type="number" id="variant_stock" name="stock" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter stock quantity" required />
+          </div>
+        </div>
+        <!-- Product Images -->
+        <div class="mb-4">
+          <label class="block mb-2 text-white">Images</label>
+          <div id="imageFieldsContainer" class="flex flex-wrap gap-2">
+            <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
+              <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, 0)" required />
+              <img id="imagePreview0" class="w-full h-full object-cover hidden" alt="Preview" />
+              <p id="placeholder0" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+            </div>
+            <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
+              <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, 1)" required />
+              <img id="imagePreview1" class="w-full h-full object-cover hidden" alt="Preview" />
+              <p id="placeholder1" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+            </div>
+            <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
+              <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, 2)" required />
+              <img id="imagePreview2" class="w-full h-full object-cover hidden" alt="Preview" />
+              <p id="placeholder2" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+            </div>
+          </div>
+          <button type="button" id="addImageField" class="mt-4 bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500">
+            Add More Images
+          </button>
+        </div>
+        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Variant</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cropper Modal -->
+  <div id="cropperModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center">
+    <div class="bg-[#111] text-white p-4 rounded-lg w-[90%] max-w-lg">
+      <h2 class="text-lg font-semibold text-blue-500 mb-3">Crop Image</h2>
+      <div class="relative w-full aspect-square bg-black overflow-hidden">
+        <img id="cropperImage" src="" alt="Image for cropping" class="max-w-full" />
+      </div>
+      <div class="flex justify-between mt-4">
+        <button onclick="closeCropper()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">Cancel</button>
+        <button onclick="cropImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">Crop & Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     function toggleModal() {
       const modal = document.getElementById('addVariantModal')
+      resetForm('addVariantForm');
       modal.classList.toggle('hidden')
     }
+    
+    // Utility Functions
+    const qs = (selector) => document.querySelector(selector)
+    const qsa = (selector) => document.querySelectorAll(selector)
+    
+    // Preview Image
+    let cropper
+    let activeInput
+    
+    function previewImage(event, index) {
+      const file = event.target.files[0]
+      if (!file) return
+    
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const cropperImage = qs('#cropperImage')
+        cropperImage.src = e.target.result
+    
+        activeInput = event.target
+        qs('#cropperModal').classList.remove('hidden')
+    
+        if (cropper) cropper.destroy()
+        cropper = new Cropper(cropperImage, {
+          aspectRatio: 1,
+          viewMode: 2,
+          autoCropArea: 1,
+          movable: true,
+          zoomable: true
+        })
+      }
+    
+      reader.readAsDataURL(file)
+    }
+    
+    function cropImage() {
+      if (!cropper) return
+    
+      const croppedCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 })
+      const croppedImage = croppedCanvas.toDataURL()
+    
+      const inputIndex = Array.from(qsa("[name='product_images']")).indexOf(activeInput)
+      const preview = qs(`#imagePreview${inputIndex}`)
+      const placeholder = qs(`#placeholder${inputIndex}`)
+    
+      if (preview && placeholder) {
+        preview.src = croppedImage
+        preview.classList.remove('hidden')
+        placeholder.classList.add('hidden')
+      }
+    
+      croppedCanvas.toBlob((blob) => {
+        const file = new File([blob], 'cropped-image.png', { type: 'image/png' })
+        const dataTransfer = new DataTransfer()
+        dataTransfer.items.add(file)
+        activeInput.files = dataTransfer.files
+      })
+    
+      closeCropper()
+    }
+    
+    function closeCropper() {
+      qs('#cropperModal').classList.add('hidden')
+      if (cropper) {
+        cropper.destroy()
+        cropper = null
+      }
+    }
+
+    // Reset form and clear image previews
+    function resetForm(formId) {
+      qs(`#${formId}`).reset();
+      clearImagePreviews();
+    }
+    
+    // Clear Image Previews
+    function clearImagePreviews() {
+      qsa("[id^='imagePreview']").forEach((preview) => {
+        preview.src = ''
+        preview.classList.add('hidden')
+      })
+    
+      qsa("[id^='placeholder']").forEach((placeholder) => {
+        placeholder.classList.remove('hidden')
+      })
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const maxImages = 7; // Maximum number of images
+      let currentImages = 3; // Default number of images
+    
+      const imageFieldsContainer = document.getElementById('imageFieldsContainer');
+      const addImageFieldButton = document.getElementById('addImageField');
+    
+      addImageFieldButton.addEventListener('click', () => {
+        if (currentImages >= maxImages) {
+          alert('You can upload a maximum of 7 images.');
+          return;
+        }
+    
+        const newFieldIndex = currentImages;
+        const newField = document.createElement('div');
+        newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
+        newField.innerHTML = `
+          <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${newFieldIndex})" required />
+          <img id="imagePreview${newFieldIndex}" class="w-full h-full object-cover hidden" alt="Preview" />
+          <p id="placeholder${newFieldIndex}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+        `;
+        imageFieldsContainer.appendChild(newField);
+        currentImages++;
+      });
+    });
   </script>
+
+  <!-- Cropper.js CSS and JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
 {% endblock %}

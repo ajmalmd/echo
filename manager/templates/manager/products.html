@@ -158,10 +158,6 @@
           <label for="description" class="block mb-2 text-white">Description</label>
           <textarea id="description" name="description" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product description"></textarea>
         </div>
-        <div>
-          <label for="price" class="block mb-2 text-white">Price</label>
-          <input type="number" id="price" name="price" step="0.01" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product price" required />
-        </div>
         <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Product</button>
       </form>
     </div>
@@ -218,10 +214,6 @@
           <label for="edit_description" class="block mb-2 text-white">Description</label>
           <textarea id="edit_description" name="description" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product description"></textarea>
         </div>
-        <div>
-          <label for="edit_price" class="block mb-2 text-white">Price</label>
-          <input type="number" id="edit_price" name="price" step="0.01" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter product price" required />
-        </div>
         <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Update Product</button>
       </form>
     </div>
@@ -241,7 +233,6 @@
       document.getElementById("edit_connectivity").value = productData.connectivity;
       document.getElementById("edit_type").value = productData.product_type;
       document.getElementById("edit_description").value = productData.description;
-      document.getElementById("edit_price").value = productData.price;
     }
   }
 </script>
