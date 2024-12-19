@@ -74,8 +74,7 @@
                       "brand": "{{ product.brand.id }}",
                       "connectivity": "{{ product.connectivity }}",
                       "product_type": "{{ product.type }}",
-                      "price": "{{ product.price }}",
-                      "description": "{{ product.description }}"
+                      "description": "{{ product.description|escapejs }}"
                   }
                 </script>
                 <a onclick="toggleEditModal(JSON.parse(document.getElementById('product-{{ product.id }}').textContent))" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit"><i class="fas fa-edit"></i></a>
@@ -119,7 +118,7 @@
     <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
       <button onclick="toggleModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
       <h2 class="text-xl text-white mb-4">Add Product</h2>
-      <form method="POST" enctype="multipart/form-data" action="{% url 'add_product' %}" class="space-y-4">
+      <form method="POST" id="addProductForm" enctype="multipart/form-data" action="{% url 'add_product' %}" class="space-y-4">
         {% csrf_token %}
         <div>
           <label for="name" class="block mb-2 text-white">Product Name</label>
@@ -164,11 +163,17 @@
   </div>
 
   <script>
-  function toggleModal() {
-    const modal = document.getElementById("addProductModal");
-    modal.classList.toggle("hidden");
-  }
-</script>
+    const qs = (selector) => document.querySelector(selector)
+    function toggleModal() {
+      const modal = document.getElementById("addProductModal");
+      resetForm('addProductForm')
+      modal.classList.toggle("hidden");
+    }
+    // Reset form
+    function resetForm(formId) {
+      qs(`#${formId}`).reset();
+    }
+  </script>
 
   <!-- Edit Product Modal -->
   <div id="editProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
@@ -220,20 +225,19 @@
   </div>
 
   <script>
-  function toggleEditModal(productData) {
-    const modal = document.getElementById("editProductModal");
-    modal.classList.toggle("hidden");
-    console.log(productData.product_type)
+    function toggleEditModal(productData) {
+      const modal = document.getElementById("editProductModal");
+      modal.classList.toggle("hidden");
 
-    if (productData) {
-      // Dynamically set the action URL
-      document.getElementById("editProductForm").action = `{% url 'edit_product' 0 %}`.replace("0",productData.id);
-      document.getElementById("edit_name").value = productData.name;
-      document.getElementById("edit_brand").value = productData.brand;
-      document.getElementById("edit_connectivity").value = productData.connectivity;
-      document.getElementById("edit_type").value = productData.product_type;
-      document.getElementById("edit_description").value = productData.description;
+      if (productData) {
+        // Dynamically set the action URL
+        document.getElementById("editProductForm").action = `{% url 'edit_product' 0 %}`.replace("0",productData.id);
+        document.getElementById("edit_name").value = productData.name;
+        document.getElementById("edit_brand").value = productData.brand;
+        document.getElementById("edit_connectivity").value = productData.connectivity;
+        document.getElementById("edit_type").value = productData.product_type;
+        document.getElementById("edit_description").value = productData.description.replace(/\\n/g, "\n");
+      }
     }
-  }
-</script>
+  </script>
 {% endblock %}

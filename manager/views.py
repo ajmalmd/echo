@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from .utils import paginate_items
 from .models import Brand, Product, ProductVariant, ProductImage
-from store.validators import is_valid_name
+from store.validators import *
 from store.models import User
 from django.contrib import messages
 from django.db.models import Count
@@ -205,8 +205,9 @@ def toggle_product_status(request, product_id):
 def product_view(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     variants = product.variants.all()
+    images = {variant.id: variant.images.all() for variant in variants}
     return render(
-        request, "manager/product_view.html", {"product": product, "variants": variants}
+        request, "manager/product_view.html", {"product": product, "variants": variants, "images":images}
     )
 
 
@@ -227,8 +228,7 @@ def add_product(request):
         brand_id = request.POST.get("brand")
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
-        description = request.POST.get("description")
-        price = request.POST.get("price")
+        description = save_description(request.POST.get("description"))
 
         try:
             brand = Brand.objects.get(id=brand_id)
@@ -238,7 +238,6 @@ def add_product(request):
                 connectivity=connectivity,
                 type=product_type,
                 description=description,
-                price=price,
                 created_by=request.user,
             )
             product.save()
@@ -262,7 +261,6 @@ def edit_product(request, product_id):
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
         description = request.POST.get("description")
-        price = request.POST.get("price")
 
         try:
             brand = Brand.objects.get(id=brand_id)
@@ -270,8 +268,7 @@ def edit_product(request, product_id):
             product.brand = brand
             product.connectivity = connectivity
             product.type = product_type
-            product.description = description
-            product.price = price
+            product.description = save_description(description)
             product.updated_by = request.user
             product.save()
             messages.success(request, "Product updated successfully!")

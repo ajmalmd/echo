@@ -9,33 +9,21 @@
   <div class="container mx-auto px-4 py-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Product Images -->
-      <div class="space-y-2">
-        <!-- Main Image -->
-        <div class="border rounded p-2 bg-white max-w-md mx-auto">
-          <img src="{{ variant_images.first.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto max-h-80 object-contain" id="mainImage" />
+      <div class="space-y-4">
+        <!-- Main Image Container -->
+        <div class="relative border rounded p-2 bg-white max-w-md mx-auto">
+          <img src="{{ variant_images.first.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto max-h-80 object-contain cursor-zoom-in" id="mainImage" onmousemove="zoomImage(event)" onmouseenter="showZoomContainer()" onmouseleave="hideZoomContainer()" />
+          <!-- Zoom Container -->
+          <div id="zoomContainer" class="hidden absolute top-0 left-full ml-4 border bg-white rounded-lg overflow-hidden" style="width: 300px; height: 300px;">
+            <img id="zoomedImage" class="object-contain" />
+          </div>
         </div>
 
-        <!-- Thumbnail Gallery -->
-        <div class="relative">
-          <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          <div class="flex gap-2 overflow-x-auto px-4">
-            {% for image in variant_images %}
-              <button class="flex-shrink-0 border rounded p-1 hover:border-blue-500 focus:border-blue-500">
-                <img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-12 h-12 object-contain" onclick="document.getElementById('mainImage').src=this.src" />
-              </button>
-            {% endfor %}
-          </div>
-
-          <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+        <!-- Thumbnail Images -->
+        <div class="flex justify-center gap-2 overflow-x-auto px-4">
+          {% for image in variant_images %}
+            <button class="flex-shrink-0 border rounded p-1 hover:border-blue-500 focus:border-blue-500" onclick="updateMainImage('{{ image.image_path.url }}')"><img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-12 h-12 object-contain" /></button>
+          {% endfor %}
         </div>
       </div>
 
@@ -65,7 +53,54 @@
           <button class="flex-1 bg-orange-400 text-white px-4 py-2 rounded hover:bg-orange-500 transition">BUY NOW</button>
           <button class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition">ADD TO CART</button>
         </div>
+        <div>
+          <p class="text-sm text-gray-600">Description: {{ product.description }}</p>
+        </div>
       </div>
     </div>
   </div>
+  <script>
+    let zoomLevel = 2.5 // Adjust this value to change the zoom level
+    
+    function updateMainImage(src) {
+      const mainImage = document.getElementById('mainImage')
+      mainImage.src = src
+    }
+    
+    function showZoomContainer() {
+      const zoomContainer = document.getElementById('zoomContainer')
+      zoomContainer.classList.remove('hidden')
+    }
+    
+    function hideZoomContainer() {
+      const zoomContainer = document.getElementById('zoomContainer')
+      zoomContainer.classList.add('hidden')
+    }
+    
+    function zoomImage(e) {
+      const mainImage = document.getElementById('mainImage')
+      const zoomContainer = document.getElementById('zoomContainer')
+      const zoomedImage = document.getElementById('zoomedImage')
+    
+      // Get the dimensions of the main image
+      const imgWidth = mainImage.offsetWidth
+      const imgHeight = mainImage.offsetHeight
+    
+      // Calculate the position of the mouse relative to the image
+      const rect = mainImage.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+    
+      // Calculate the percentage position of the mouse
+      const xPercent = (mouseX / imgWidth) * 100
+      const yPercent = (mouseY / imgHeight) * 100
+    
+      // Set the zoomed image source
+      zoomedImage.src = mainImage.src
+    
+      // Update the zoomed image style based on mouse position
+      zoomedImage.style.transform = `scale(${zoomLevel})`
+      zoomedImage.style.transformOrigin = `${xPercent}% ${yPercent}%`
+    }
+  </script>
 {% endblock %}

@@ -41,7 +41,9 @@ def user_login(request):
             try:
                 user = User.objects.get(email=email)
                 if not user.is_active:
-                    messages.error(request, "Your account is inactive. Please contact support.")
+                    messages.error(
+                        request, "Your account is inactive. Please contact support."
+                    )
                 else:
                     messages.error(request, "Invalid email or password.")
             except User.DoesNotExist:
@@ -249,7 +251,16 @@ def home(request):
 
 def products_listing(request):
     brands = Brand.objects.filter(is_active=True)
-    products = get_new_arrivals()
+    products = (
+        ProductVariant.objects.filter(
+            is_active=True,
+            product__is_active=True,  # Ensure the related Product is active
+            product__brand__is_active=True,  # Ensure the related Brand is active
+        )
+        .select_related("product")
+        .prefetch_related("images")
+        .all()
+    )
     return render(
         request,
         "store/products_list.html",

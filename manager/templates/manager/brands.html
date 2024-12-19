@@ -115,8 +115,14 @@
 {% endblock %}
 {% block script %}
   <script>
+    const qs = (selector) => document.querySelector(selector)
+    // Reset form
+    function resetForm(formId) {
+      qs(`#${formId}`).reset();
+    }
     document.getElementById('add-brand-btn').addEventListener('click', function () {
       document.getElementById('add-brand-modal').classList.remove('hidden')
+      resetForm('add-brand-form')
     })
     
     document.getElementById('close-modal').addEventListener('click', function () {

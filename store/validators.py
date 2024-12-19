@@ -37,3 +37,7 @@ def is_valid_password(password):
     if not any(char in "!@#$%^&*()-_=+[]{}|;:',.<>?/`~" for char in password):
         return False
     return True
+
+def save_description(description):
+    # Trim excess whitespace and reduce multiple line breaks to a single line break
+    return "\n".join(line.strip() for line in description.splitlines() if line.strip())

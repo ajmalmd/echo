@@ -60,21 +60,12 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {% for product in products %}
-            <a href="{% url 'home' %}">
+          {% for variant in products %}
+          <script>console.log('{{variant.id}}','{{variant.name}}','{{ variant.images.first.image_path.url }}')</script>
+            <a href="{% url 'view_variant' variant.id %}">
               <div class="bg-white p-4 rounded-lg">
                 <div class="relative">
-                  {% with variant=product.first_variant.0 %}
-                    {% if variant %}
-                      {% with image=variant.first_image.0 %}
-                        {% if image %}
-                          <img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto" />
-                        {% endif %}
-                      {% endwith %}
-                    {% else %}
-                      <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-auto" />
-                    {% endif %}
-                  {% endwith %}
+                  <img src="{{ variant.images.first.image_path.url }}" alt="{{ variant.name }}" class="w-full h-auto" />
                   <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -82,8 +73,8 @@
                   </button>
                 </div>
                 <div class="mt-4">
-                  <h3 class="font-medium">{{ product.name }}</h3>
-                  <p class="text-gray-600 mt-1">${{ product.price }}</p>
+                  <h3 class="font-medium">{{ variant.name }}</h3>
+                  <p class="text-gray-600 mt-1">{{ variant.price }}</p>
                   <button class="mt-4 w-full bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">Add to Cart</button>
                 </div>
               </div>
