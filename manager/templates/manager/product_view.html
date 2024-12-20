@@ -66,7 +66,7 @@
                     <!-- View Button -->
                     <a href="" class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500" title="View"><i class="fas fa-eye"></i></a>
                     <!-- Edit Button -->
-                    <a href="" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit" data-modal-toggle="editProductModal"><i class="fas fa-edit"></i></a>
+                    <a href="{% url 'edit_variant' variant.id %}" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit" data-modal-toggle="editProductModal"><i class="fas fa-edit"></i></a>
                     <!-- Block/Unblock Button -->
                     {% if variant.is_active %}
                       <a href="{% url 'toggle_variant_status' variant.id %}" class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500" title="Block"><i class="fas fa-ban"></i></a>
@@ -94,7 +94,8 @@
         {% csrf_token %}
         <div>
           <label for="variant_name" class="block mb-2 text-white">Variant Name</label>
-          <input type="text" id="variant_name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant name" required />
+          <input type="text" oninput="validateName()" id="variant_name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant name" required />
+          <p id="nameError" class="text-red-500 text-sm hidden">Name must be 2-50 characters and contain only alphabets and spaces.</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -130,7 +131,7 @@
             Add More Images
           </button>
         </div>
-        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Variant</button>
+        <button id="submitBtn" disabled type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Add Variant</button>
       </form>
     </div>
   </div>
@@ -150,6 +151,24 @@
   </div>
 
   <script>
+    function validateName() {
+      const nameInput = document.getElementById('variant_name');
+      const errorText = document.getElementById('nameError');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // Name validation regex: 2-50 characters, alphabets, and spaces
+      const nameRegex = /^[A-Za-z ]{2,50}$/;
+      const isValid = nameRegex.test(nameInput.value.trim());
+  
+      if (isValid) {
+        errorText.classList.add('hidden'); // Hide error message
+        submitBtn.disabled = false; // Enable submit button
+      } else {
+        errorText.classList.remove('hidden'); // Show error message
+        submitBtn.disabled = true; // Disable submit button
+      }
+    }
+
     // Utility Functions
     const qs = (selector) => document.querySelector(selector)
     const qsa = (selector) => document.querySelectorAll(selector)

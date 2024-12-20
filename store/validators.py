@@ -38,6 +38,6 @@ def is_valid_password(password):
         return False
     return True
 
-def save_description(description):
+def convert_description(description):
     # Trim excess whitespace and reduce multiple line breaks to a single line break
     return "\n".join(line.strip() for line in description.splitlines() if line.strip())

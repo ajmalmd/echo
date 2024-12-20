@@ -207,7 +207,9 @@ def product_view(request, product_id):
     variants = product.variants.all()
     images = {variant.id: variant.images.all() for variant in variants}
     return render(
-        request, "manager/product_view.html", {"product": product, "variants": variants, "images":images}
+        request,
+        "manager/product_view.html",
+        {"product": product, "variants": variants, "images": images},
     )
 
 
@@ -228,7 +230,11 @@ def add_product(request):
         brand_id = request.POST.get("brand")
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
-        description = save_description(request.POST.get("description"))
+        description = convert_description(request.POST.get("description"))
+
+        if not is_valid_name(name):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return redirect("products")
 
         try:
             brand = Brand.objects.get(id=brand_id)
@@ -260,7 +266,11 @@ def edit_product(request, product_id):
         brand_id = request.POST.get("brand")
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
-        description = request.POST.get("description")
+        description = convert_description(request.POST.get("description"))
+
+        if not is_valid_name(name):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return redirect("products")
 
         try:
             brand = Brand.objects.get(id=brand_id)
@@ -268,7 +278,7 @@ def edit_product(request, product_id):
             product.brand = brand
             product.connectivity = connectivity
             product.type = product_type
-            product.description = save_description(description)
+            product.description = description
             product.updated_by = request.user
             product.save()
             messages.success(request, "Product updated successfully!")
@@ -290,10 +300,9 @@ def add_variant(request, product_id):
     price = request.POST.get("price")
     stock = request.POST.get("stock")
 
-    # Validate required fields
-    if not name or not price or not stock:
-        messages.error(request, "All fields are required.")
-        return redirect(request.META.get("HTTP_REFERER", "products"))
+    if not is_valid_name(name):
+        messages.error(request, "Invalid name. Use only alphabets and spaces.")
+        return redirect("product_view", product_id)
 
     try:
         # Create the variant
@@ -310,7 +319,7 @@ def add_variant(request, product_id):
         if len(images) < 3:
             messages.error(request, "You must upload at least 3 images.")
             variant.delete()  # Clean up the created variant
-            return redirect(request.META.get("HTTP_REFERER", "products"))
+            return redirect("product_view", product_id)
 
         for image in images[:7]:  # Allow up to 7 images
             uploaded_image = cloudinary_upload(image)
@@ -321,6 +330,63 @@ def add_variant(request, product_id):
         messages.success(request, "Variant added successfully!")
     except Exception as e:
         messages.error(request, f"An error occurred: {str(e)}")
-        return redirect(request.META.get("HTTP_REFERER", "products"))
+        return redirect("product_view", product_id)
 
     return redirect("product_view", product_id=product.id)
+
+
+def edit_variant(request, variant_id):
+    variant = get_object_or_404(ProductVariant, id=variant_id)
+    product_id = variant.product.id
+    existing_images = ProductImage.objects.filter(product_variant=variant)
+
+    if request.method == "POST":
+        name = request.POST.get("name")
+        price = request.POST.get("price")
+        stock = request.POST.get("stock")
+
+        if not name or not price or not stock:
+            messages.error(request, "All fields are required.")
+            return redirect("product_view", product_id)
+
+        try:
+            variant.name = name
+            variant.price = price
+            variant.stock = stock
+            variant.updated_by = request.user
+            variant.save()
+
+            # Handle image deletions
+            images_to_delete = request.POST.getlist("delete_images")
+            ProductImage.objects.filter(id__in=images_to_delete).delete()
+
+            # Handle new image uploads
+            new_images = request.FILES.getlist("product_images")
+            total_images = (
+                len(existing_images) - len(images_to_delete) + len(new_images)
+            )
+
+            if total_images < 3:
+                messages.error(request, "You must have at least 3 images.")
+                return redirect("edit_variant", variant_id=variant_id)
+
+            if total_images > 7:
+                messages.error(request, "You can have a maximum of 7 images.")
+                return redirect("edit_variant", variant_id=variant_id)
+
+            for image in new_images:
+                uploaded_image = cloudinary_upload(image)
+                ProductImage.objects.create(
+                    product_variant=variant, image_path=uploaded_image["secure_url"]
+                )
+
+            messages.success(request, "Variant updated successfully!")
+            return redirect("product_view", product_id)
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+
+    context = {
+        "variant": variant,
+        "existing_images": existing_images,
+    }
+    return render(request, "manager/edit_variant.html", context)

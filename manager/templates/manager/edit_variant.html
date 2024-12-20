@@ -1,0 +1,239 @@
+{% extends 'manager/base.html' %}
+{% block header %}
+{{ variant.product.name }} - {{variant.name}}
+{% endblock %}
+{% block content %}
+  <main class="p-6">
+    <div class="bg-gray-900 p-6 rounded-md text-white">
+      <h2 class="text-lg font-semibold mb-4">Edit {{ variant.product.name }} - {{variant.name}}</h2>
+
+      {% comment %} this is the edit variant page {% endcomment %}
+        <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
+          <form id="editVariantForm" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div>
+              <label for="variant_name" class="block mb-2 text-white">Variant Name</label>
+              <input type="text" oninput="validateName()" id="variant_name" name="name" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant name" value="{{ variant.name }}" required />
+              <p id="nameError" class="text-red-500 text-sm hidden">Name must be 2-50 characters and contain only alphabets and spaces.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="variant_price" class="block mb-2 text-white">Price</label>
+                <input type="number" id="variant_price" name="price" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant price" value="{{ variant.price }}" required />
+              </div>
+              <div>
+                <label for="variant_stock" class="block mb-2 text-white">Stock</label>
+                <input type="number" id="variant_stock" name="stock" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter stock quantity" value="{{ variant.stock }}" required />
+              </div>
+            </div>
+            <!-- Product Images -->
+            <div class="mb-4">
+              <label class="block mb-2 text-white">Images</label>
+              <div id="imageFieldsContainer" class="flex flex-wrap gap-2">
+                {% for image in existing_images %}
+                  <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
+                    <img src="{{ image.image_path }}" class="w-full h-full object-cover" alt="Existing Image" />
+                    <button type="button" class="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs text-center cursor-pointer p-1" onclick="removeImage(this, {{ image.id }})">Remove</button>
+                  </div>
+                {% endfor %}
+                {% for i in "x"|rjust:"7"|make_list %}
+                  {% if forloop.counter0 >= existing_images|length %}
+                    <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
+                      <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, {{ forloop.counter0 }})" {% if forloop.counter0 < 3 %}required{% endif %} />
+                      <img id="imagePreview{{ forloop.counter0 }}" class="w-full h-full object-cover hidden" alt="Preview" />
+                      <p id="placeholder{{ forloop.counter0 }}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <button type="button" id="addImageField" class="mt-4 bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500">Add More Images</button>
+            </div>
+            <button id="submitBtn" type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Update Variant</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Cropper Modal -->
+      <div id="cropperModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center">
+        <div class="bg-[#111] text-white p-4 rounded-lg w-[90%] max-w-lg">
+          <h2 class="text-lg font-semibold text-blue-500 mb-3">Crop Image</h2>
+          <div class="relative w-full aspect-square bg-black overflow-hidden">
+            <img id="cropperImage" src="" alt="Image for cropping" class="max-w-full" />
+          </div>
+          <div class="flex justify-between mt-4">
+            <button onclick="closeCropper()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">Cancel</button>
+            <button onclick="cropImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">Crop & Save</button>
+          </div>
+        </div>
+      </div>
+  </main>
+  <script>
+  function validateName() {
+    const nameInput = document.getElementById('variant_name');
+    const errorText = document.getElementById('nameError');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    const nameRegex = /^[A-Za-z ]{2,50}$/;
+    const isValid = nameRegex.test(nameInput.value.trim());
+
+    if (isValid) {
+      errorText.classList.add('hidden');
+      submitBtn.disabled = false;
+    } else {
+      errorText.classList.remove('hidden');
+      submitBtn.disabled = true;
+    }
+  }
+
+  const qs = (selector) => document.querySelector(selector);
+  const qsa = (selector) => document.querySelectorAll(selector);
+  
+  let cropper;
+  let activeInput;
+  
+  function previewImage(event, index) {
+    const file = event.target.files[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const cropperImage = qs('#cropperImage');
+      cropperImage.src = e.target.result;
+  
+      activeInput = event.target;
+      qs('#cropperModal').classList.remove('hidden');
+  
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(cropperImage, {
+        aspectRatio: 1,
+        viewMode: 2,
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true
+      });
+    };
+  
+    reader.readAsDataURL(file);
+  }
+  
+  function cropImage() {
+    if (!cropper) return;
+  
+    const croppedCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+    const croppedImage = croppedCanvas.toDataURL();
+  
+    const inputIndex = Array.from(qsa("[name='product_images']")).indexOf(activeInput);
+    const preview = qs(`#imagePreview${inputIndex}`);
+    const placeholder = qs(`#placeholder${inputIndex}`);
+  
+    if (preview && placeholder) {
+      preview.src = croppedImage;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+    }
+  
+    croppedCanvas.toBlob((blob) => {
+      const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      activeInput.files = dataTransfer.files;
+    });
+  
+    closeCropper();
+  }
+  
+  function closeCropper() {
+    qs('#cropperModal').classList.add('hidden');
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+  }
+
+  function removeImage(button, imageId) {
+    const imageContainer = button.closest('div');
+    imageContainer.remove();
+    
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'delete_images';
+    hiddenInput.value = imageId;
+    qs('#editVariantForm').appendChild(hiddenInput);
+    
+    updateImageInputs();
+    adjustImageIndexes();
+  }
+
+  function updateImageInputs() {
+    const existingImages = document.querySelectorAll('#imageFieldsContainer > div:not(:has(input[type="file"]))').length;
+    const deletedImages = document.querySelectorAll('input[name="delete_images"]').length;
+    const remainingImages = existingImages - deletedImages;
+    const imageInputs = document.querySelectorAll('#imageFieldsContainer input[type="file"]');
+    
+    imageInputs.forEach((input, index) => {
+      if (index < 3 - remainingImages) {
+        input.required = true;
+      } else {
+        input.required = false;
+      }
+    });
+  }
+
+  function adjustImageIndexes() {
+    const imageContainers = qsa('#imageFieldsContainer > div');
+    imageContainers.forEach((container, index) => {
+      const input = container.querySelector('input[type="file"]');
+      const preview = container.querySelector('img');
+      const placeholder = container.querySelector('p');
+      
+      if (input) {
+        input.onchange = (event) => previewImage(event, index);
+      }
+      if (preview) {
+        preview.id = `imagePreview${index}`;
+      }
+      if (placeholder) {
+        placeholder.id = `placeholder${index}`;
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const maxImages = 7;
+    const imageFieldsContainer = document.getElementById('imageFieldsContainer');
+    const addImageFieldButton = document.getElementById('addImageField');
+    
+    function addImageInput() {
+      const currentImages = document.querySelectorAll('#imageFieldsContainer > div').length;
+      if (currentImages >= maxImages) {
+        alert('You can upload a maximum of 7 images.');
+        return;
+      }
+
+      const newField = document.createElement('div');
+      newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
+      newField.innerHTML = `
+        <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})" ${currentImages < 3 ? 'required' : ''} />
+        <img id="imagePreview${currentImages}" class="w-full h-full object-cover hidden" alt="Preview" />
+        <p id="placeholder${currentImages}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+      `;
+      imageFieldsContainer.appendChild(newField);
+      updateImageInputs();
+    }
+
+    while (document.querySelectorAll('#imageFieldsContainer > div').length < maxImages) {
+      addImageInput();
+    }
+
+    addImageFieldButton.addEventListener('click', addImageInput);
+
+    updateImageInputs();
+    adjustImageIndexes();
+  });
+  </script>
+
+  <!-- Cropper.js CSS and JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+{% endblock %}
+
