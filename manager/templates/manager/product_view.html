@@ -66,16 +66,7 @@
                     <!-- View Button -->
                     <a href="" class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500" title="View"><i class="fas fa-eye"></i></a>
                     <!-- Edit Button -->
-                    <script type="application/json" id="variant-{{ variant.id }}">
-                      {
-                        "id": "{{ variant.id }}",
-                        "name": "{{ variant.name }}",
-                        "price": "{{ variant.price }}",
-                        "stock": "{{ variant.stock }}",
-                        "images": [{% for image in variant.images.all %}"{{ image.image_path.url }}"{% if not forloop.last %},{% endif %}{% endfor %}]
-                      }
-                    </script>
-                    <a onclick="openEditVariantModal({{ variant.id }})" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit"><i class="fas fa-edit"></i></a>
+                    <a href="" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit" data-modal-toggle="editProductModal"><i class="fas fa-edit"></i></a>
                     <!-- Block/Unblock Button -->
                     {% if variant.is_active %}
                       <a href="{% url 'toggle_variant_status' variant.id %}" class="bg-red-600 px-3 py-1 rounded-md text-white hover:bg-red-500" title="Block"><i class="fas fa-ban"></i></a>
@@ -158,47 +149,7 @@
     </div>
   </div>
 
-  <!-- Edit Variant Modal -->
-  <div id="editVariantModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
-    <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
-      <button onclick="toggleEditModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
-      <h2 class="text-xl text-white mb-4">Edit Product Variant</h2>
-      <form id="editVariantForm" method="POST" enctype="multipart/form-data" action="" class="space-y-4">
-        {% csrf_token %}
-        <div>
-          <label for="edit_variant_name" class="block mb-2 text-white">Variant Name</label>
-          <input type="text" id="edit_variant_name" name="name" value="{{ variant.name }}" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant name" required />
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label for="edit_variant_price" class="block mb-2 text-white">Price</label>
-            <input type="number" id="edit_variant_price" name="price" value="{{ variant.price }}" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter variant price" required />
-          </div>
-          <div>
-            <label for="edit_variant_stock" class="block mb-2 text-white">Stock</label>
-            <input type="number" id="edit_variant_stock" name="stock" value="{{ variant.stock }}" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter stock quantity" required />
-          </div>
-        </div>
-        <!-- Existing and New Product Images -->
-        <div class="mb-4">
-          <label class="block mb-2 text-white">Product Images</label>
-          <div id="editImageFieldsContainer" class="flex flex-wrap gap-2"></div>
-          <button type="button" id="addEditImageField" class="mt-4 bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500">
-            Add More Images
-          </button>
-        </div>
-        <button type="submit" class="bg-blue-600 px-4 py-2 rounded-md text-white hover:bg-blue-500 mt-4">Save Changes</button>
-      </form>
-    </div>
-  </div>
-
   <script>
-    function toggleModal() {
-      const modal = document.getElementById('addVariantModal')
-      resetForm('addVariantForm');
-      modal.classList.toggle('hidden')
-    }
-    
     // Utility Functions
     const qs = (selector) => document.querySelector(selector)
     const qsa = (selector) => document.querySelectorAll(selector)
@@ -285,12 +236,16 @@
     }
     document.addEventListener('DOMContentLoaded', () => {
       const maxImages = 7; // Maximum number of images
-      let currentImages = 3; // Default number of images
+      const defaultImages = 3; // Default number of images
     
       const imageFieldsContainer = document.getElementById('imageFieldsContainer');
       const addImageFieldButton = document.getElementById('addImageField');
+      const modal = document.getElementById('addVariantModal');
     
-      addImageFieldButton.addEventListener('click', () => {
+      let currentImages = 0; // Track current number of image fields
+    
+      // Function to add a new image input field
+      const addImageInput = () => {
         if (currentImages >= maxImages) {
           alert('You can upload a maximum of 7 images.');
           return;
@@ -299,51 +254,56 @@
         const newFieldIndex = currentImages;
         const newField = document.createElement('div');
         newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
-        newField.innerHTML = `
+        if (currentImages<3){
+          newField.innerHTML = `
+          <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${newFieldIndex})" required />
+          <img id="imagePreview${newFieldIndex}" class="w-full h-full object-cover hidden" alt="Preview" />
+          <p id="placeholder${newFieldIndex}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+        `;
+        }
+        else{
+          newField.innerHTML = `
           <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${newFieldIndex})" />
           <img id="imagePreview${newFieldIndex}" class="w-full h-full object-cover hidden" alt="Preview" />
           <p id="placeholder${newFieldIndex}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
         `;
+        }
         imageFieldsContainer.appendChild(newField);
         currentImages++;
-      });
+      };
+    
+      // Function to initialize the image inputs (default 3 inputs)
+      const initializeImageInputs = () => {
+        imageFieldsContainer.innerHTML = ''; // Clear existing fields
+        currentImages = 0;
+        for (let i = 0; i < defaultImages; i++) {
+          addImageInput();
+        }
+      };
+    
+      // Function to reset image fields to 0 when modal is closed
+      const resetImageInputs = () => {
+        imageFieldsContainer.innerHTML = '';
+        currentImages = 0;
+      };
+    
+      // Add default inputs on page load
+      initializeImageInputs();
+    
+      // Add one more input when the add button is clicked
+      addImageFieldButton.addEventListener('click', addImageInput);
+    
+      // Toggle modal visibility and handle image inputs
+      window.toggleModal = () => {
+        const isHidden = modal.classList.contains('hidden');
+        if (isHidden) {
+          initializeImageInputs(); // Initialize image inputs when modal is opened
+        } else {
+          resetImageInputs(); // Reset image inputs when modal is closed
+        }
+        modal.classList.toggle('hidden');
+      };
     });
-  </script>
-  <script>
-    
-    function openEditVariantModal(variantId) {
-      const modal = document.getElementById("editVariantModal");
-      const variantData = JSON.parse(
-        document.getElementById(`variant-${variantId}`).textContent
-      );
-    
-      // Populate the form fields
-      document.getElementById("editVariantForm").action = `/variants/${variantData.id}/edit/`; // Adjust URL as needed
-      document.getElementById("edit_variant_name").value = variantData.name;
-      document.getElementById("edit_variant_price").value = variantData.price;
-      document.getElementById("edit_variant_stock").value = variantData.stock;
-    
-      // Populate existing images
-      const imageContainer = document.getElementById("editImageFieldsContainer");
-      const addEditImageFieldButton = document.getElementById('addEditImageField');
-
-      imageContainer.innerHTML = ""; // Clear existing content
-      variantData.images.forEach((imageUrl) => {
-        const imgDiv = document.createElement("div");
-        imgDiv.className = "relative w-24 h-24 bg-gray-700 rounded-md overflow-hidden";
-        imgDiv.innerHTML = `
-          <img src="${imageUrl}" alt="Variant Image" class="w-full h-full object-cover" />
-        `;
-        imageContainer.appendChild(imgDiv);
-      });
-    
-      // Show the modal
-      modal.classList.remove("hidden");
-    }
-    function toggleEditModal() {
-      const modal = document.getElementById("editVariantModal");
-      modal.classList.add("hidden");
-    }
   </script>
 
   <!-- Cropper.js CSS and JS -->

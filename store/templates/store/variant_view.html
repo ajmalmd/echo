@@ -29,7 +29,7 @@
 
       <!-- Product Info -->
       <div class="space-y-3">
-        <h1 class="text-xl font-bold">{{ product.name }}</h1>
+        <h1 class="text-xl font-bold">{{brand.name}} {{ product.name }} - {{variant.name}}</h1>
         <div class="text-lg">₹ {{ variant.price }}</div>
 
         <!-- Color Selection -->
@@ -45,7 +45,7 @@
               </a>
             {% endfor %}
           </div>
-          <p class="text-sm text-gray-600">Selected: {{ variant.name }}</p>
+          {% comment %} <p class="text-sm text-gray-600">Selected: {{ variant.name }}</p> {% endcomment %}
         </div>
 
         <!-- Action Buttons -->

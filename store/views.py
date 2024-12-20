@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.utils.timezone import now, timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
+from django.db.models import F
 
 
 def is_customer(user):
@@ -254,12 +255,12 @@ def products_listing(request):
     products = (
         ProductVariant.objects.filter(
             is_active=True,
-            product__is_active=True,  # Ensure the related Product is active
-            product__brand__is_active=True,  # Ensure the related Brand is active
+            product__is_active=True,
+            product__brand__is_active=True,
         )
         .select_related("product")
         .prefetch_related("images")
-        .all()
+        .annotate(product_name=F("product__name"), brand_name=F("product__brand__name"))
     )
     return render(
         request,
@@ -272,12 +273,14 @@ def view_variant(request, variant_id):
 
     variant = get_object_or_404(ProductVariant, id=variant_id)
     product = variant.product
+    brand = product.brand
     other_variants = product.variants.exclude(id=variant_id)
     variant_images = variant.images.all()
 
     context = {
         "variant": variant,
         "product": product,
+        "brand": brand,
         "other_variants": other_variants,
         "variant_images": variant_images,
     }
