@@ -25,6 +25,38 @@
                 <label for="variant_stock" class="block mb-2 text-white">Stock</label>
                 <input type="number" id="variant_stock" name="stock" class="w-full bg-gray-800 p-2 rounded-md text-white" placeholder="Enter stock quantity" value="{{ variant.stock }}" required />
               </div>
+              <div>
+                <label for="discount_type" class="block mb-2 text-white">Discount Type</label>
+                <select
+                  id="discount_type"
+                  name="discount_type"
+                  class="w-full bg-gray-800 p-2 rounded-md text-white"
+                >
+                  <option value="none" {% if not variant.discount_type %}selected{% endif %}>
+                    None
+                  </option>
+                  {% for key, value in variant.DISCOUNT_TYPE_CHOICES %}
+                    <option
+                      value="{{ key }}"
+                      {% if variant.discount_type == key %}selected{% endif %}
+                    >
+                      {{ value }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="discount_value" class="block mb-2 text-white">Discount Value</label>
+                <input
+                  type="number"
+                  id="discount_value"
+                  name="discount_value"
+                  class="w-full bg-gray-800 p-2 rounded-md text-white"
+                  placeholder="Enter discount value"
+                  value="{{ variant.discount_value }}"
+                  {% if not variant.discount_type %}disabled{% endif %}
+                />
+              </div>
             </div>
             <!-- Product Images -->
             <div class="mb-4">
@@ -68,168 +100,195 @@
       </div>
   </main>
   <script>
-  function validateName() {
-    const nameInput = document.getElementById('variant_name');
-    const errorText = document.getElementById('nameError');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    const nameRegex = /^[A-Za-z ]{2,50}$/;
-    const isValid = nameRegex.test(nameInput.value.trim());
-
-    if (isValid) {
-      errorText.classList.add('hidden');
-      submitBtn.disabled = false;
-    } else {
-      errorText.classList.remove('hidden');
-      submitBtn.disabled = true;
-    }
-  }
-
-  const qs = (selector) => document.querySelector(selector);
-  const qsa = (selector) => document.querySelectorAll(selector);
-  
-  let cropper;
-  let activeInput;
-  
-  function previewImage(event, index) {
-    const file = event.target.files[0];
-    if (!file) return;
-  
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const cropperImage = qs('#cropperImage');
-      cropperImage.src = e.target.result;
-  
-      activeInput = event.target;
-      qs('#cropperModal').classList.remove('hidden');
-  
-      if (cropper) cropper.destroy();
-      cropper = new Cropper(cropperImage, {
-        aspectRatio: 1,
-        viewMode: 2,
-        autoCropArea: 1,
-        movable: true,
-        zoomable: true
-      });
-    };
-  
-    reader.readAsDataURL(file);
-  }
-  
-  function cropImage() {
-    if (!cropper) return;
-  
-    const croppedCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-    const croppedImage = croppedCanvas.toDataURL();
-  
-    const inputIndex = Array.from(qsa("[name='product_images']")).indexOf(activeInput);
-    const preview = qs(`#imagePreview${inputIndex}`);
-    const placeholder = qs(`#placeholder${inputIndex}`);
-  
-    if (preview && placeholder) {
-      preview.src = croppedImage;
-      preview.classList.remove('hidden');
-      placeholder.classList.add('hidden');
-    }
-  
-    croppedCanvas.toBlob((blob) => {
-      const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      activeInput.files = dataTransfer.files;
-    });
-  
-    closeCropper();
-  }
-  
-  function closeCropper() {
-    qs('#cropperModal').classList.add('hidden');
-    if (cropper) {
-      cropper.destroy();
-      cropper = null;
-    }
-  }
-
-  function removeImage(button, imageId) {
-    const imageContainer = button.closest('div');
-    imageContainer.remove();
-    
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'delete_images';
-    hiddenInput.value = imageId;
-    qs('#editVariantForm').appendChild(hiddenInput);
-    
-    updateImageInputs();
-    adjustImageIndexes();
-  }
-
-  function updateImageInputs() {
-    const existingImages = document.querySelectorAll('#imageFieldsContainer > div:not(:has(input[type="file"]))').length;
-    const deletedImages = document.querySelectorAll('input[name="delete_images"]').length;
-    const remainingImages = existingImages - deletedImages;
-    const imageInputs = document.querySelectorAll('#imageFieldsContainer input[type="file"]');
-    
-    imageInputs.forEach((input, index) => {
-      if (index < 3 - remainingImages) {
-        input.required = true;
+    document.getElementById("discount_type").addEventListener("change", function () {
+      const discountValueField = document.getElementById("discount_value");
+      if (this.value === "none") {
+        discountValueField.value = "";
+        discountValueField.disabled = true;
       } else {
-        input.required = false;
+        discountValueField.disabled = false;
       }
     });
-  }
-
-  function adjustImageIndexes() {
-    const imageContainers = qsa('#imageFieldsContainer > div');
-    imageContainers.forEach((container, index) => {
-      const input = container.querySelector('input[type="file"]');
-      const preview = container.querySelector('img');
-      const placeholder = container.querySelector('p');
+    function validateName() {
+      const nameInput = document.getElementById('variant_name');
+      const errorText = document.getElementById('nameError');
+      const submitBtn = document.getElementById('submitBtn');
       
-      if (input) {
-        input.onchange = (event) => previewImage(event, index);
-      }
-      if (preview) {
-        preview.id = `imagePreview${index}`;
-      }
-      if (placeholder) {
-        placeholder.id = `placeholder${index}`;
-      }
-    });
-  }
+      const nameRegex = /^[A-Za-z ]{2,50}$/;
+      const isValid = nameRegex.test(nameInput.value.trim());
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const maxImages = 7;
-    const imageFieldsContainer = document.getElementById('imageFieldsContainer');
-    const addImageFieldButton = document.getElementById('addImageField');
+      if (isValid) {
+        errorText.classList.add('hidden');
+        submitBtn.disabled = false;
+      } else {
+        errorText.classList.remove('hidden');
+        submitBtn.disabled = true;
+      }
+    }
+
+    const qs = (selector) => document.querySelector(selector);
+    const qsa = (selector) => document.querySelectorAll(selector);
     
-    function addImageInput() {
-      const currentImages = document.querySelectorAll('#imageFieldsContainer > div').length;
-      if (currentImages >= maxImages) {
-        alert('You can upload a maximum of 7 images.');
+    let cropper;
+    let activeInput;
+    
+    function previewImage(event, index) {
+      console.log(index)
+      const file = event.target.files[0];
+      const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    
+      if (!file) return; // If no file is uploaded, exit the function
+    
+      // Validate the file type
+      if (!validImageTypes.includes(file.type)) {
+        alert("Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP).");
+        event.target.value = ""; // Reset the file input
         return;
       }
+    
+      // Validate file size (optional, e.g., limit to 5MB)
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSizeInBytes) {
+        alert("File size exceeds the limit of 5MB. Please upload a smaller image.");
+        event.target.value = ""; // Reset the file input
+        return;
+      }
+    
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const cropperImage = qs('#cropperImage');
+        cropperImage.src = e.target.result;
+    
+        activeInput = event.target;
+        qs('#cropperModal').classList.remove('hidden');
+    
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropperImage, {
+          aspectRatio: 1,
+          viewMode: 2,
+          autoCropArea: 1,
+          movable: true,
+          zoomable: true
+        });
+      };
+    
+      reader.readAsDataURL(file);
+    }
+    
+    function cropImage() {
+      if (!cropper) return;
+    
+      const croppedCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+      const croppedImage = croppedCanvas.toDataURL();
+    
+      const inputIndex = Array.from(qsa("[name='product_images']")).indexOf(activeInput);
+      const preview = qs(`#imagePreview${inputIndex}`);
+      const placeholder = qs(`#placeholder${inputIndex}`);
+    
+      if (preview && placeholder) {
+        preview.src = croppedImage;
+        preview.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      }
+    
+      croppedCanvas.toBlob((blob) => {
+        const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        activeInput.files = dataTransfer.files;
+      });
+    
+      closeCropper();
+    }
+    
+    function closeCropper() {
+      qs('#cropperModal').classList.add('hidden');
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+    }
 
-      const newField = document.createElement('div');
-      newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
-      newField.innerHTML = `
-        <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})" ${currentImages < 3 ? 'required' : ''} />
-        <img id="imagePreview${currentImages}" class="w-full h-full object-cover hidden" alt="Preview" />
-        <p id="placeholder${currentImages}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
-      `;
-      imageFieldsContainer.appendChild(newField);
+    function removeImage(button, imageId) {
+      const imageContainer = button.closest('div');
+      imageContainer.remove();
+      
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'delete_images';
+      hiddenInput.value = imageId;
+      qs('#editVariantForm').appendChild(hiddenInput);
+      
       updateImageInputs();
+      adjustImageIndexes();
     }
 
-    while (document.querySelectorAll('#imageFieldsContainer > div').length < maxImages) {
-      addImageInput();
+    function updateImageInputs() {
+      const existingImages = document.querySelectorAll('#imageFieldsContainer > div:not(:has(input[type="file"]))').length;
+      const deletedImages = document.querySelectorAll('input[name="delete_images"]').length;
+      const remainingImages = existingImages - deletedImages;
+      const imageInputs = document.querySelectorAll('#imageFieldsContainer input[type="file"]');
+      
+      imageInputs.forEach((input, index) => {
+        if (index < 3 - remainingImages) {
+          input.required = true;
+        } else {
+          input.required = false;
+        }
+      });
     }
 
-    addImageFieldButton.addEventListener('click', addImageInput);
+    function adjustImageIndexes() {
+      const imageContainers = qsa('#imageFieldsContainer > div');
+      imageContainers.forEach((container, index) => {
+        const input = container.querySelector('input[type="file"]');
+        const preview = container.querySelector('img');
+        const placeholder = container.querySelector('p');
+        
+        if (input) {
+          input.onchange = (event) => previewImage(event, index);
+        }
+        if (preview) {
+          preview.id = `imagePreview${index}`;
+        }
+        if (placeholder) {
+          placeholder.id = `placeholder${index}`;
+        }
+      });
+    }
 
-    updateImageInputs();
-    adjustImageIndexes();
-  });
+    document.addEventListener('DOMContentLoaded', () => {
+      const maxImages = 7;
+      const imageFieldsContainer = document.getElementById('imageFieldsContainer');
+      const addImageFieldButton = document.getElementById('addImageField');
+      
+      function addImageInput() {
+        const currentImages = document.querySelectorAll('#imageFieldsContainer > div').length;
+        if (currentImages >= maxImages) {
+          alert('You can upload a maximum of 7 images.');
+          return;
+        }
+
+        const newField = document.createElement('div');
+        newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
+        newField.innerHTML = `
+          <input type="image" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})" ${currentImages < 3 ? 'required' : ''} />
+          <img id="imagePreview${currentImages}" class="w-full h-full object-cover hidden" alt="Preview" />
+          <p id="placeholder${currentImages}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
+        `;
+        imageFieldsContainer.appendChild(newField);
+        updateImageInputs();
+      }
+
+      while (document.querySelectorAll('#imageFieldsContainer > div').length < maxImages) {
+        addImageInput();
+      }
+
+      addImageFieldButton.addEventListener('click', addImageInput);
+
+      updateImageInputs();
+      adjustImageIndexes();
+    });
   </script>
 
   <!-- Cropper.js CSS and JS -->

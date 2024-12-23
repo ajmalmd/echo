@@ -209,7 +209,12 @@ def product_view(request, product_id):
     return render(
         request,
         "manager/product_view.html",
-        {"product": product, "variants": variants, "images": images},
+        {
+            "product": product,
+            "variants": variants,
+            "images": images,
+            "product_variant": ProductVariant,
+        },
     )
 
 
@@ -226,14 +231,16 @@ def toggle_variant_status(request, variant_id):
 @user_passes_test(is_staff_user)
 def add_product(request):
     if request.method == "POST":
-        name = request.POST.get("name")
+        name = request.POST.get("name", "").strip()
         brand_id = request.POST.get("brand")
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
         description = convert_description(request.POST.get("description"))
 
-        if not is_valid_name(name):
-            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+        try:
+            validate_product_name(name)
+        except ValidationError as e:
+            messages.error(request, str(e))
             return redirect("products")
 
         try:
@@ -262,14 +269,16 @@ def add_product(request):
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     if request.method == "POST":
-        name = request.POST.get("name")
+        name = request.POST.get("name", "").strip()
         brand_id = request.POST.get("brand")
         connectivity = request.POST.get("connectivity")
         product_type = request.POST.get("type")
         description = convert_description(request.POST.get("description"))
 
-        if not is_valid_name(name):
-            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+        try:
+            validate_product_name(name)
+        except ValidationError as e:
+            messages.error(request, str(e))
             return redirect("products")
 
         try:
@@ -299,6 +308,22 @@ def add_variant(request, product_id):
     name = request.POST.get("name")
     price = request.POST.get("price")
     stock = request.POST.get("stock")
+    discount_type = request.POST.get("discount_type")
+    discount_value = request.POST.get("discount_value")
+    is_discount_active = True
+
+    if discount_type == "none" or not discount_type:
+        discount_type = None
+        discount_value = None
+        is_discount_active = False
+
+    # Convert discount_value to a numeric type if it's provided
+    if discount_value:
+        try:
+            discount_value = float(discount_value)
+        except ValueError:
+            discount_value = None
+            is_discount_active = False
 
     if not is_valid_name(name):
         messages.error(request, "Invalid name. Use only alphabets and spaces.")
@@ -311,6 +336,9 @@ def add_variant(request, product_id):
             name=name,
             price=price,
             stock=stock,
+            discount_type=discount_type,
+            discount_value=discount_value,
+            is_discount_active=is_discount_active,
             created_by=request.user,
         )
 
@@ -344,15 +372,39 @@ def edit_variant(request, variant_id):
         name = request.POST.get("name")
         price = request.POST.get("price")
         stock = request.POST.get("stock")
+        discount_type = request.POST.get("discount_type")
+        discount_value = request.POST.get("discount_value")
+        is_discount_active = True
+
+        if discount_type == "none":
+            discount_type = None
+            discount_value = None
+            is_discount_active = False
+
+        if discount_type and discount_value:
+            try:
+                discount_value = float(discount_value)
+                if discount_value <= 0:
+                    messages.error(request, "Discount value must be greater than 0.")
+                    return redirect("edit_variant", variant_id=variant_id)
+            except ValueError:
+                messages.error(request, "Invalid discount value.")
+                return redirect("edit_variant", variant_id=variant_id)
 
         if not name or not price or not stock:
             messages.error(request, "All fields are required.")
-            return redirect("product_view", product_id)
+            return redirect("edit_variant", variant_id=variant_id)
+        if not is_valid_name(name):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return redirect("edit_variant", variant_id=variant_id)
 
         try:
             variant.name = name
             variant.price = price
             variant.stock = stock
+            variant.discount_type = discount_type
+            variant.discount_value = discount_value
+            variant.is_discount_active = is_discount_active
             variant.updated_by = request.user
             variant.save()
 

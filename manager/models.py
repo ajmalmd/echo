@@ -39,6 +39,24 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def get_similar_variants(self, exclude_variant=None):
+        # Get the current product's brand
+        brand = self.brand
+
+        # Get variants of the same product, excluding the current variant if passed
+        variants = self.variants.filter(
+            is_active=True,  # Only active variants
+            product__brand=brand,  # Same brand
+        ).exclude(id=exclude_variant.id if exclude_variant else None)
+
+        # Further filter variants by matching connectivity and type from the Product model
+        similar_variants = variants.filter(
+            product__connectivity=self.connectivity,  # Access connectivity from the Product model
+            product__type=self.type,  # Access type from the Product model
+        )
+
+        return similar_variants
 
 
 # ProductVariant Model

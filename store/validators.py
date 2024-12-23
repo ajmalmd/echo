@@ -1,4 +1,5 @@
 import re
+from django.core.exceptions import ValidationError
 
 #email validation
 def is_valid_email(email):
@@ -41,3 +42,9 @@ def is_valid_password(password):
 def convert_description(description):
     # Trim excess whitespace and reduce multiple line breaks to a single line break
     return "\n".join(line.strip() for line in description.splitlines() if line.strip())
+
+def validate_product_name(name):
+    if not name or not (2 <= len(name) <= 50):
+        raise ValidationError("Name must be between 2 and 50 characters.")
+    if not name.replace(" ", "").isalnum():  # Check for alphanumeric characters
+        raise ValidationError("Name can only contain alphabets, numbers, and spaces.")

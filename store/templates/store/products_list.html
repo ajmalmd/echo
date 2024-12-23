@@ -61,7 +61,6 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {% for variant in products %}
-          <script>console.log('{{variant.id}}','{{variant.name}}','{{ variant.images.first.image_path.url }}')</script>
             <a href="{% url 'view_variant' variant.id %}">
               <div class="bg-white p-4 rounded-lg">
                 <div class="relative">

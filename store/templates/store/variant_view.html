@@ -7,6 +7,12 @@
 
 {% block content %}
   <div class="container mx-auto px-4 py-4">
+    <nav class="text-gray-300 text-sm mb-4">
+      <a href="{% url 'home' %}" class="text-blue-400 hover:underline">Home</a> &raquo;
+      <a href="{% url 'store_products' %}" class="text-blue-400 hover:underline">Products</a>
+      &raquo;
+      <span>{{ product.name }}</span>
+    </nav>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Product Images -->
       <div class="space-y-4">
@@ -29,8 +35,37 @@
 
       <!-- Product Info -->
       <div class="space-y-3">
-        <h1 class="text-xl font-bold">{{brand.name}} {{ product.name }} - {{variant.name}}</h1>
-        <div class="text-lg">₹ {{ variant.price }}</div>
+        <h1 class="text-xl font-bold">{{ brand.name }} {{ product.name }} - {{ variant.name }}</h1>
+        <div class="text-lg flex items-center gap-2">
+          {% if variant.is_discount_active and discounted_price %}
+            <!-- Display the discounted price -->
+            <span class="text-black-500 font-semibold">₹ {{ discounted_price|floatformat:2 }}</span>
+            <!-- Show the original price as strikethrough -->
+            <span class="text-gray-500 line-through">₹ {{ variant.price }}</span>
+            <!-- Show the discount type and value -->
+            {% if variant.discount_type == 'percentage' %}
+              <span class="text-green-600">({{ variant.discount_value }}% OFF)</span>
+            {% elif variant.discount_type == 'fixed' %}
+              <span class="text-green-600">(₹ {{ variant.discount_value }} OFF)</span>
+            {% endif %}
+          {% else %}
+            <!-- If no discount is active, just show the original price -->
+            <span class="text-lg">₹ {{ variant.price }}</span>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="flex">
+            {% if rating.rating %}
+              <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span class="text-md text-gray-800">{{ rating.rating }}</span>
+            {% endif %}
+          </div>
+          {% if rating.count %}
+            <span class="text-sm text-gray-600">({{ rating.count }})</span>
+          {% endif %}
+        </div>
 
         <!-- Color Selection -->
         <div class="space-y-1">
@@ -53,10 +88,41 @@
           <button class="flex-1 bg-orange-400 text-white px-4 py-2 rounded hover:bg-orange-500 transition">BUY NOW</button>
           <button class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition">ADD TO CART</button>
         </div>
-        <div>
-          <p class="text-sm text-gray-600">Description: {{ product.description }}</p>
-        </div>
       </div>
+    </div>
+    <div>
+      <p class="text-sm text-gray-600">
+        Description: <br />{{ product.description|linebreaks }}
+      </p>
+    </div>
+    <h2 class="text-xl font-bold">Similar Variants</h2>
+    <div class="grid grid-cols-4 gap-4">
+      {% for similar_variant in similar_variants %}
+        <a href="{% url 'view_variant' similar_variant.id %}">
+          <div class="bg-white p-4 rounded-lg">
+            <div class="relative">
+              <img src="{{ similar_variant.images.first.image_path.url }}" alt="{{ similar_variant.name }}" class="w-full h-auto" />
+              <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+            </div>
+            <div class="mt-4">
+              <h3 class="font-medium">{{ similar_variant.product.brand.name }} {{ similar_variant.product.name }} - {{ similar_variant.name }}</h3>
+              {% if similar_variant.is_discount_active %}
+                <p class="text-sm line-through">₹ {{ similar_variant.price }}</p>
+                <p class="text-lg font-bold text-black-600">₹ {{ similar_variant.discounted_price|floatformat:2 }}</p>
+              {% else %}
+                <p class="text-gray-600 mt-1">{{ similar_variant.price }}</p>
+              {% endif %}
+              <button class="mt-4 w-full bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">Add to Cart</button>
+            </div>
+          </div>
+        </a>
+      {% empty %}
+        <p>No similar variants found.</p>
+      {% endfor %}
     </div>
   </div>
   <script>

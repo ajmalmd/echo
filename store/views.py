@@ -272,17 +272,23 @@ def products_listing(request):
 def view_variant(request, variant_id):
 
     variant = get_object_or_404(ProductVariant, id=variant_id)
+    discounted_price = variant.discounted_price()
     product = variant.product
     brand = product.brand
     other_variants = product.variants.exclude(id=variant_id)
     variant_images = variant.images.all()
+    rating={"rating":4.5,"count":100}
+    similar_variants = product.get_similar_variants(exclude_variant=variant)
 
     context = {
         "variant": variant,
+        "discounted_price": discounted_price,
         "product": product,
         "brand": brand,
         "other_variants": other_variants,
         "variant_images": variant_images,
+        "rating": rating,
+        "similar_variants": similar_variants,
     }
 
     return render(request, "store/variant_view.html", context)
