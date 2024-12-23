@@ -6,60 +6,69 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container mx-auto px-4 py-4">
-    <nav class="text-gray-300 text-sm mb-4">
+  <style>
+    #productInfo::-webkit-scrollbar {
+      display: none;
+    }
+    
+    @media (max-width: 768px) {
+      #zoomContainer {
+        display: none !important;
+      }
+    
+      #mainImage {
+        cursor: default;
+      }
+    }
+  </style>
+  <div class="container mx-auto px-4 py-4 max-w-7xl">
+    <nav class="text-gray-300 text-sm mb-4 overflow-x-auto whitespace-nowrap">
       <a href="{% url 'home' %}" class="text-blue-400 hover:underline">Home</a> &raquo;
       <a href="{% url 'store_products' %}" class="text-blue-400 hover:underline">Products</a>
       &raquo;
-      <span>{{ product.name }}</span>
+      <span class="truncate inline-block max-w-[200px] align-bottom">{{ product.name }}</span>
     </nav>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
       <!-- Product Images -->
       <div class="space-y-4">
-        <!-- Main Image Container -->
-        <div class="relative border rounded p-2 bg-white max-w-md mx-auto">
-          <img src="{{ variant_images.first.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto max-h-80 object-contain cursor-zoom-in" id="mainImage" onmousemove="zoomImage(event)" onmouseenter="showZoomContainer()" onmouseleave="hideZoomContainer()" />
-          <!-- Zoom Container -->
-          <div id="zoomContainer" class="hidden absolute top-0 left-full ml-4 border bg-white rounded-lg overflow-hidden" style="width: 300px; height: 300px;">
+        <div class="relative border rounded p-2 bg-white mx-auto">
+          <img src="{{ variant_images.first.image_path.url }}" alt="{{ product.name }}" class="w-full h-auto max-h-[400px] md:max-h-[500px] object-contain cursor-zoom-in" id="mainImage" onmousemove="zoomImage(event)" onmouseenter="showZoomContainer()" onmouseleave="hideZoomContainer()" />
+          <div id="zoomContainer" class="hidden absolute top-0 left-full ml-4 border bg-white rounded-lg overflow-hidden z-10" style="width: 300px; height: 300px;">
             <img id="zoomedImage" class="object-contain" />
           </div>
         </div>
-
-        <!-- Thumbnail Images -->
-        <div class="flex justify-center gap-2 overflow-x-auto px-4">
+        <div class="flex justify-start md:justify-center gap-2 overflow-x-auto pb-2 px-1">
           {% for image in variant_images %}
-            <button class="flex-shrink-0 border rounded p-1 hover:border-blue-500 focus:border-blue-500" onclick="updateMainImage('{{ image.image_path.url }}')"><img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-12 h-12 object-contain" /></button>
+            <button class="flex-shrink-0 border rounded p-1 hover:border-blue-500 focus:border-blue-500 transition-colors" onclick="updateMainImage('{{ image.image_path.url }}')"><img src="{{ image.image_path.url }}" alt="{{ product.name }}" class="w-16 h-16 sm:w-20 sm:h-20 object-contain" /></button>
           {% endfor %}
         </div>
       </div>
 
       <!-- Product Info -->
-      <div class="space-y-3">
-        <h1 class="text-xl font-bold">{{ brand.name }} {{ product.name }} - {{ variant.name }}</h1>
-        <div class="text-lg flex items-center gap-2">
+      <div class="space-y-4 overflow-y-auto max-h-[calc(100vh-2rem)] no-scrollbar px-1" id="productInfo">
+        <h1 class="text-xl sm:text-2xl font-bold">{{ brand.name }} {{ product.name }} - {{ variant.name }}</h1>
+        <div class="text-lg sm:text-xl flex flex-wrap items-center gap-2">
           {% if variant.is_discount_active and discounted_price %}
-            <!-- Display the discounted price -->
             <span class="text-black-500 font-semibold">₹ {{ discounted_price|floatformat:2 }}</span>
-            <!-- Show the original price as strikethrough -->
             <span class="text-gray-500 line-through">₹ {{ variant.price }}</span>
-            <!-- Show the discount type and value -->
             {% if variant.discount_type == 'percentage' %}
-              <span class="text-green-600">({{ variant.discount_value }}% OFF)</span>
+              <span class="text-green-600 text-base">({{ variant.discount_value }}% OFF)</span>
             {% elif variant.discount_type == 'fixed' %}
-              <span class="text-green-600">(₹ {{ variant.discount_value }} OFF)</span>
+              <span class="text-green-600 text-base">(₹ {{ variant.discount_value }} OFF)</span>
             {% endif %}
           {% else %}
-            <!-- If no discount is active, just show the original price -->
-            <span class="text-lg">₹ {{ variant.price }}</span>
+            <span>₹ {{ variant.price }}</span>
           {% endif %}
         </div>
+
         <div class="flex items-center gap-1">
-          <div class="flex">
+          <div class="flex items-center">
             {% if rating.rating %}
               <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              <span class="text-md text-gray-800">{{ rating.rating }}</span>
+              <span class="text-md text-gray-800 ml-1">{{ rating.rating }}</span>
             {% endif %}
           </div>
           {% if rating.count %}
@@ -68,60 +77,64 @@
         </div>
 
         <!-- Color Selection -->
-        <div class="space-y-1">
+        <div class="space-y-2">
           {% if other_variants %}
             <label class="block text-sm font-medium text-gray-700">Other Colors:</label>
           {% endif %}
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-3">
             {% for other_variant in other_variants %}
               <a href="{% url 'view_variant' other_variant.id %}" class="block text-center">
-                <img src="{{ other_variant.images.first.image_path.url }}" alt="{{ other_variant.name }}" class="w-10 h-10 object-contain mx-auto" />
-                <p class="text-xs mt-1">{{ other_variant.name }}</p>
+                <img src="{{ other_variant.images.first.image_path.url }}" alt="{{ other_variant.name }}" class="w-12 h-12 sm:w-14 sm:h-14 object-contain mx-auto border rounded p-1 hover:border-blue-500 transition-colors" />
+                <p class="text-xs mt-1 max-w-[80px] truncate">{{ other_variant.name }}</p>
               </a>
             {% endfor %}
           </div>
-          {% comment %} <p class="text-sm text-gray-600">Selected: {{ variant.name }}</p> {% endcomment %}
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-2">
-          <button class="flex-1 bg-orange-400 text-white px-4 py-2 rounded hover:bg-orange-500 transition">BUY NOW</button>
-          <button class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition">ADD TO CART</button>
+        <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white py-2">
+          <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">BUY NOW</button>
+          <button class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">ADD TO CART</button>
+        </div>
+
+        <div class="pb-4">
+          <p class="text-sm sm:text-base text-gray-600">
+            Description: <br />{{ product.description|linebreaks }}
+          </p>
         </div>
       </div>
     </div>
-    <div>
-      <p class="text-sm text-gray-600">
-        Description: <br />{{ product.description|linebreaks }}
-      </p>
-    </div>
-    <h2 class="text-xl font-bold">Similar Variants</h2>
-    <div class="grid grid-cols-4 gap-4">
+
+    <!-- Similar Products Section -->
+    <h2 class="text-xl font-semibold mt-8 mb-4">Similar Variants</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
       {% for similar_variant in similar_variants %}
-        <a href="{% url 'view_variant' similar_variant.id %}">
-          <div class="bg-white p-4 rounded-lg">
+        <a href="{% url 'view_variant' similar_variant.id %}" class="block">
+          <div class="bg-white p-3 sm:p-4 rounded-lg border hover:shadow-lg transition-shadow">
             <div class="relative">
-              <img src="{{ similar_variant.images.first.image_path.url }}" alt="{{ similar_variant.name }}" class="w-full h-auto" />
-              <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <img src="{{ similar_variant.images.first.image_path.url }}" alt="{{ similar_variant.name }}" class="w-full aspect-square object-contain" />
+              <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </button>
             </div>
-            <div class="mt-4">
-              <h3 class="font-medium">{{ similar_variant.product.brand.name }} {{ similar_variant.product.name }} - {{ similar_variant.name }}</h3>
+            <div class="mt-3">
+              <h3 class="font-medium text-sm sm:text-base line-clamp-2">{{ similar_variant.product.brand.name }} {{ similar_variant.product.name }} - {{ similar_variant.name }}</h3>
               {% if similar_variant.is_discount_active %}
-                <p class="text-sm line-through">₹ {{ similar_variant.price }}</p>
-                <p class="text-lg font-bold text-black-600">₹ {{ similar_variant.discounted_price|floatformat:2 }}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <p class="text-base sm:text-lg font-bold text-black-600">₹ {{ similar_variant.discounted_price|floatformat:2 }}</p>
+                  <p class="text-xs sm:text-sm line-through text-gray-500">₹ {{ similar_variant.price }}</p>
+                </div>
               {% else %}
-                <p class="text-gray-600 mt-1">{{ similar_variant.price }}</p>
+                <p class="text-base sm:text-lg font-bold text-black-600 mt-1">₹ {{ similar_variant.price }}</p>
               {% endif %}
-              <button class="mt-4 w-full bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">Add to Cart</button>
+              <button class="mt-3 w-full bg-gray-900 text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm sm:text-base">Add to Cart</button>
             </div>
           </div>
         </a>
       {% empty %}
-        <p>No similar variants found.</p>
+        <p class="col-span-full text-center text-gray-500 py-4">No similar variants found.</p>
       {% endfor %}
     </div>
   </div>

@@ -278,7 +278,7 @@ def view_variant(request, variant_id):
     other_variants = product.variants.exclude(id=variant_id)
     variant_images = variant.images.all()
     rating={"rating":4.5,"count":100}
-    similar_variants = product.get_similar_variants(exclude_variant=variant)
+    similar_variants = variant.get_similar_variants()
 
     context = {
         "variant": variant,
