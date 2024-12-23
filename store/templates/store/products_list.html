@@ -61,20 +61,27 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {% for variant in products %}
-            <a href="{% url 'view_variant' variant.id %}">
-              <div class="bg-white p-4 rounded-lg">
+            <a href="{% url 'view_variant' variant.id %}" class="block">
+              <div class="bg-white p-3 sm:p-4 rounded-lg border hover:shadow-lg transition-shadow">
                 <div class="relative">
-                  <img src="{{ variant.images.first.image_path.url }}" alt="{{ variant.name }}" class="w-full h-auto" />
-                  <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+                  <img src="{{ variant.images.first.image_path.url }}" alt="{{ variant.name }}" class="w-full aspect-square object-contain" />
+                  <button class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                   </button>
                 </div>
                 <div class="mt-4">
-                  <h3 class="font-medium">{{variant.brand_name}} {{ variant.product_name }} - {{variant.name}}</h3>
-                  <p class="text-gray-600 mt-1">{{ variant.price }}</p>
-                  <button class="mt-4 w-full bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">Add to Cart</button>
+                  <h3 class="font-medium">{{ variant.brand_name }} {{ variant.product_name }} - {{ variant.name }}</h3>
+                  {% if variant.is_discount_active %}
+                    <div class="flex items-center gap-2 mt-1">
+                      <p class="text-base sm:text-lg font-bold text-black-600">₹ {{ variant.discounted_price|floatformat:2 }}</p>
+                      <p class="text-xs sm:text-sm line-through text-gray-500">₹ {{ variant.price }}</p>
+                    </div>
+                  {% else %}
+                    <p class="text-base sm:text-lg font-bold text-black-600 mt-1">₹ {{ variant.price }}</p>
+                  {% endif %}
+                  <button class="mt-3 w-full bg-gray-900 text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm sm:text-base">Add to Cart</button>
                 </div>
               </div>
             </a>
