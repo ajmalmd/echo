@@ -22,6 +22,9 @@
                 <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                 <input type="password" id="password" name="password" placeholder="Password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-gray-500 focus:border-gray-500" required>
             </div>
+            <div class="text-right">
+                <a href="{% url 'forgot_password' %}" class="text-sm text-gray-600 hover:text-gray-900">Forgot your password?</a>
+            </div>
             <button type="submit" class="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu">LOGIN</button>
             <input type="hidden" name="next" value="{{ request.GET.next }}">
         </form>

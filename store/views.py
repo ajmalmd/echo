@@ -88,6 +88,14 @@ def user_signup(request):
                 request, "store/signup.html", {"fullname": fullname, "email": email}
             )
 
+        # Check if the same email is already in session
+        session_email = request.session.get("user_signup_data", {}).get("email")
+        if session_email and session_email == email:
+            messages.info(
+                request, "OTP has already been sent to this email. Please verify."
+            )
+            return redirect("verify_otp")
+
         # Generate OTP
         otp = generate_otp()
 
@@ -130,28 +138,37 @@ def user_signup(request):
     return render(request, "store/signup.html")
 
 
+@never_cache
 def verify_otp(request):
-
     next_url = request.GET.get("next", "home")
 
     if request.user.is_authenticated:
         return redirect(next_url)
 
-    # Check if user signup data exists in the session
-    user_signup_data = request.session.get("user_signup_data", None)
-    if not user_signup_data:
-        messages.error(request, "No signup session found. Please sign up again.")
-        return redirect("signup")
+    # Check if the OTP session data exists
+    session_key = (
+        "user_signup_data"
+        if "user_signup_data" in request.session
+        else "user_forgot_password_data"
+    )
+    user_data = request.session.get(session_key, None)
+
+    if not user_data:
+        messages.error(request, "No session data found. Please try again.")
+        return redirect(
+            "signup" if session_key == "user_signup_data" else "forgot_password"
+        )
 
     if request.method == "POST":
         # Combine OTP from individual inputs
         otp = "".join([request.POST.get(f"otp{i+1}", "").strip() for i in range(6)])
 
-        email = user_signup_data["email"]
+        email = user_data["email"]
 
         # Validate the OTP
         try:
             otp_record = OTP.objects.get(email=email)
+
             if otp_record.otp != otp:
                 messages.error(request, "Invalid OTP.")
                 return render(request, "store/verify_otp.html")
@@ -161,40 +178,40 @@ def verify_otp(request):
                 return render(request, "store/verify_otp.html")
 
         except OTP.DoesNotExist:
-            messages.error(request, "No OTP record found. Please sign up again.")
-            return redirect("signup")
+            messages.error(request, "No OTP record found. Please try again.")
+            return redirect(
+                "signup" if session_key == "user_signup_data" else "forgot_password"
+            )
 
-        # OTP is valid; create the user
-        User.objects.create_user(
-            email=email,
-            password=user_signup_data["password"],
-            fullname=user_signup_data["fullname"],
-        )
+        # OTP is valid
+        if session_key == "user_signup_data":
+            # Create the user for signup flow
+            User.objects.create_user(
+                email=email,
+                password=user_data["password"],
+                fullname=user_data["fullname"],
+            )
+
+            # Authenticate and log in the user
+            user = authenticate(request, email=email, password=user_data["password"])
+            login(request, user)
+
+            messages.success(request, "Your account has been created and verified.")
+        else:
+            # Redirect to reset password flow for forgot password
+            request.session["reset_password_email"] = email
+            messages.success(request, "OTP verified. You can now reset your password.")
+            return redirect("reset_password")
 
         # Clean up session and OTP record
-        del request.session["user_signup_data"]
+        del request.session[session_key]
         del request.session["otp_sent_time"]
         otp_record.delete()
 
-        messages.success(
-            request, "OTP verified successfully. Your account has been created."
-        )
-
-        # Authenticate and Login verified user
-        user = authenticate(request, email=email, password=user_signup_data["password"])
-        login(request, user)
         return redirect("home")
 
     elif request.method == "GET" and request.GET.get("resend", None) == "true":
         # Resend OTP logic
-        user_signup_data = request.session.get("user_signup_data", None)
-        if not user_signup_data:
-            messages.error(request, "No signup session found. Please sign up again.")
-            return redirect("signup")
-
-        email = user_signup_data["email"]
-
-        # Check if resend is allowed based on the session's OTP sending time
         otp_sent_time = request.session.get("otp_sent_time")
         if otp_sent_time:
             otp_sent_time = datetime.fromisoformat(otp_sent_time)
@@ -205,14 +222,18 @@ def verify_otp(request):
                 return redirect("verify_otp")
 
         try:
-            otp_record = OTP.objects.get(email=email)
+            otp_record = OTP.objects.get(email=user_data["email"])
 
             if otp_record.resend_count >= 3:
                 time_since_first_resend = now() - otp_record.created_at
 
                 if time_since_first_resend <= timedelta(hours=4):
                     messages.error(request, "Resend limit exceeded. Try again later.")
-                    return redirect("signup")
+                    return redirect(
+                        "signup"
+                        if session_key == "user_signup_data"
+                        else "forgot_password"
+                    )
 
                 else:
                     otp_record.resend_count = 0  # Reset resend count after 4 hours
@@ -224,16 +245,18 @@ def verify_otp(request):
             otp_record.resend_count += 1
             otp_record.save()
 
-            send_otp_email(email, otp)
+            send_otp_email(user_data["email"], otp)
 
             # Update the session with the new OTP sending time
             request.session["otp_sent_time"] = datetime.now().isoformat()
 
-            messages.success(request, "OTP has been resend.")
+            messages.success(request, "OTP has been resent.")
 
         except OTP.DoesNotExist:
-            messages.error(request, "No OTP record found. Please sign up again.")
-            return redirect("signup")
+            messages.error(request, "No OTP record found. Please try again.")
+            return redirect(
+                "signup" if session_key == "user_signup_data" else "forgot_password"
+            )
 
     return render(request, "store/verify_otp.html")
 
@@ -241,6 +264,108 @@ def verify_otp(request):
 def user_logout(request):
     logout(request)
     return redirect("home")
+
+
+@never_cache
+def forgot_password(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+
+        if not is_valid_email(email):
+            messages.error(request, "Invalid email address.")
+            return redirect("forgot_password")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(request, "No user found with this email.")
+            return redirect("forgot_password")
+
+        # Check if the same email is already in session
+        session_email = request.session.get("user_forgot_password_data", {}).get(
+            "email"
+        )
+        if session_email and session_email == email:
+            messages.info(
+                request, "OTP has already been sent to this email. Please verify."
+            )
+            return redirect("verify_otp")
+
+        # Generate OTP
+        otp = generate_otp()
+
+        # Fetch or create an OTP record for the email
+        otp_record, created = OTP.objects.get_or_create(email=email)
+
+        # Check resend limit
+        if otp_record.resend_count >= 3:
+            time_since_first_resend = now() - otp_record.created_at
+            if time_since_first_resend <= timedelta(hours=1):
+                messages.error(
+                    request,
+                    "Resend limit exceeded. Try again later.",
+                )
+                return redirect("forgot_password")
+            else:
+                otp_record.resend_count = 0
+
+        # Send OTP and update the OTP record
+        send_otp_email(email, otp)
+
+        otp_record.otp = otp
+        otp_record.created_at = now()
+        otp_record.resend_count += 1
+        otp_record.save()
+
+        # Save OTP sending time in session
+        request.session["otp_sent_time"] = datetime.now().isoformat()
+
+        # Temporarily store user data in session for verification
+        request.session["user_forgot_password_data"] = {
+            "email": email,
+        }
+
+        messages.success(request, "OTP sent to your email. Please verify.")
+        return redirect("verify_otp")
+
+    return render(request, "store/forgot_password.html")
+
+@never_cache
+def reset_password(request):
+
+    if request.user.is_authenticated:
+        return redirect("home")
+    user_data = request.session.get("user_forgot_password_data", None)
+    email = user_data["email"]
+
+    if request.method == "POST":
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if not is_valid_password(password):
+            messages.error(
+                request,
+                "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a digit, and a special character.",
+            )
+            return redirect("reset_password")
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return redirect("reset_password")
+        
+        user = User.objects.get(email=email)
+        user.set_password(password)
+        user.save()
+        otp_record = OTP.objects.get(email=email)
+        
+        # Clean up session and OTP record
+        del request.session["user_forgot_password_data"]
+        del request.session["otp_sent_time"]
+        otp_record.delete()
+        return redirect("login")
+    return render(request, "store/reset_password.html")
 
 
 # @user_passes_test(is_customer)
@@ -277,7 +402,7 @@ def view_variant(request, variant_id):
     brand = product.brand
     other_variants = product.variants.exclude(id=variant_id)
     variant_images = variant.images.all()
-    rating={"rating":4.5,"count":100}
+    rating = {"rating": 4.5, "count": 100}
     similar_variants = variant.get_similar_variants()
 
     context = {
