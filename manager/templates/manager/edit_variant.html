@@ -71,7 +71,7 @@
                 {% for i in "x"|rjust:"7"|make_list %}
                   {% if forloop.counter0 >= existing_images|length %}
                     <div class="relative w-24 h-24 bg-[#222] rounded-md overflow-hidden">
-                      <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, {{ forloop.counter0 }})" {% if forloop.counter0 < 3 %}required{% endif %} />
+                      <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, {{ forloop.counter0 }})" />
                       <img id="imagePreview{{ forloop.counter0 }}" class="w-full h-full object-cover hidden" alt="Preview" />
                       <p id="placeholder{{ forloop.counter0 }}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
                     </div>
@@ -231,7 +231,7 @@
       
       imageInputs.forEach((input, index) => {
         if (index < 3 - remainingImages) {
-          input.required = true;
+          input.required = false;
         } else {
           input.required = false;
         }
@@ -272,7 +272,7 @@
         const newField = document.createElement('div');
         newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
         newField.innerHTML = `
-          <input type="image" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})" ${currentImages < 3 ? 'required' : ''} />
+          <input type="image" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})"/>
           <img id="imagePreview${currentImages}" class="w-full h-full object-cover hidden" alt="Preview" />
           <p id="placeholder${currentImages}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
         `;

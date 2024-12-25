@@ -11,7 +11,10 @@ from store.models import User
 from django.contrib import messages
 from django.db.models import Count
 from django.contrib.auth.decorators import user_passes_test
-from cloudinary.uploader import upload as cloudinary_upload
+from cloudinary.uploader import (
+    upload as cloudinary_upload,
+    destroy as cloudinary_delete,
+)
 
 
 def is_staff_user(user):
@@ -410,7 +413,9 @@ def edit_variant(request, variant_id):
 
             # Handle image deletions
             images_to_delete = request.POST.getlist("delete_images")
-            ProductImage.objects.filter(id__in=images_to_delete).delete()
+            images_to_delete_objects = ProductImage.objects.filter(
+                id__in=images_to_delete
+            )
 
             # Handle new image uploads
             new_images = request.FILES.getlist("product_images")
@@ -425,6 +430,12 @@ def edit_variant(request, variant_id):
             if total_images > 7:
                 messages.error(request, "You can have a maximum of 7 images.")
                 return redirect("edit_variant", variant_id=variant_id)
+
+            for image in images_to_delete_objects:
+                # Delete from Cloudinary
+                cloudinary_delete(str(image.image_path).split("/")[-1].split(".")[0])
+
+                image.delete()
 
             for image in new_images:
                 uploaded_image = cloudinary_upload(image)
