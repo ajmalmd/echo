@@ -100,6 +100,7 @@
       </div>
   </main>
   <script>
+    let activeIndex;
     document.getElementById("discount_type").addEventListener("change", function () {
       const discountValueField = document.getElementById("discount_value");
       if (this.value === "none") {
@@ -109,6 +110,7 @@
         discountValueField.disabled = false;
       }
     });
+
     function validateName() {
       const nameInput = document.getElementById('variant_name');
       const errorText = document.getElementById('nameError');
@@ -128,40 +130,38 @@
 
     const qs = (selector) => document.querySelector(selector);
     const qsa = (selector) => document.querySelectorAll(selector);
-    
+
     let cropper;
     let activeInput;
-    
+
     function previewImage(event, index) {
-      console.log(index)
       const file = event.target.files[0];
       const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    
-      if (!file) return; // If no file is uploaded, exit the function
-    
-      // Validate the file type
+
+      if (!file) return;
+
       if (!validImageTypes.includes(file.type)) {
         alert("Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP).");
-        event.target.value = ""; // Reset the file input
+        event.target.value = "";
         return;
       }
-    
-      // Validate file size (optional, e.g., limit to 5MB)
-      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+
+      const maxSizeInBytes = 5 * 1024 * 1024;
       if (file.size > maxSizeInBytes) {
         alert("File size exceeds the limit of 5MB. Please upload a smaller image.");
-        event.target.value = ""; // Reset the file input
+        event.target.value = "";
         return;
       }
-    
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const cropperImage = qs('#cropperImage');
         cropperImage.src = e.target.result;
-    
+
         activeInput = event.target;
+        activeIndex = index;
         qs('#cropperModal').classList.remove('hidden');
-    
+
         if (cropper) cropper.destroy();
         cropper = new Cropper(cropperImage, {
           aspectRatio: 1,
@@ -171,36 +171,35 @@
           zoomable: true
         });
       };
-    
+
       reader.readAsDataURL(file);
     }
-    
+
     function cropImage() {
       if (!cropper) return;
-    
+
       const croppedCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
       const croppedImage = croppedCanvas.toDataURL();
-    
-      const inputIndex = Array.from(qsa("[name='product_images']")).indexOf(activeInput);
-      const preview = qs(`#imagePreview${inputIndex}`);
-      const placeholder = qs(`#placeholder${inputIndex}`);
-    
+
+      const preview = qs(`#imagePreview${activeIndex}`);
+      const placeholder = qs(`#placeholder${activeIndex}`);
+
       if (preview && placeholder) {
         preview.src = croppedImage;
         preview.classList.remove('hidden');
         placeholder.classList.add('hidden');
       }
-    
+
       croppedCanvas.toBlob((blob) => {
         const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         activeInput.files = dataTransfer.files;
       });
-    
+
       closeCropper();
     }
-    
+
     function closeCropper() {
       qs('#cropperModal').classList.add('hidden');
       if (cropper) {
@@ -272,7 +271,7 @@
         const newField = document.createElement('div');
         newField.className = 'relative w-24 h-24 bg-[#222] rounded-md overflow-hidden';
         newField.innerHTML = `
-          <input type="image" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})"/>
+          <input type="file" name="product_images" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event, ${currentImages})"/>
           <img id="imagePreview${currentImages}" class="w-full h-full object-cover hidden" alt="Preview" />
           <p id="placeholder${currentImages}" class="flex justify-center items-center text-gray-500 text-sm h-full">Upload</p>
         `;

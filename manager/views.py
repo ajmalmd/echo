@@ -315,6 +315,27 @@ def add_variant(request, product_id):
     discount_value = request.POST.get("discount_value")
     is_discount_active = True
 
+    # Stock validation
+    try:
+        stock = int(stock)
+        if stock < 0:
+            messages.error(request, "Stock value must be a non-negative integer.")
+            return redirect("product_view", product_id)
+    except ValueError:
+        messages.error(request, "Stock value must be an integer.")
+        return redirect("product_view", product_id)
+    
+    # Price validation
+    try:
+        price = float(price)
+        if price < 0:
+            messages.error(request, "Price value must be a non-negative integer.")
+            return redirect("product_view", product_id)
+    except ValueError:
+        messages.error(request, "Price value must be a number.")
+        return redirect("product_view", product_id)
+    
+    
     if discount_type == "none" or not discount_type:
         discount_type = None
         discount_value = None
@@ -378,6 +399,26 @@ def edit_variant(request, variant_id):
         discount_type = request.POST.get("discount_type")
         discount_value = request.POST.get("discount_value")
         is_discount_active = True
+
+        # Stock validation
+        try:
+            stock = int(stock)
+            if stock < 0:
+                messages.error(request, "Stock value must be a non-negative integer.")
+                return redirect("edit_variant", variant_id=variant_id)
+        except ValueError:
+            messages.error(request, "Stock value must be an integer.")
+            return redirect("edit_variant", variant_id=variant_id)
+        
+        # Price validation
+        try:
+            price = float(price)
+            if price < 0:
+                messages.error(request, "Price value must be a non-negative integer.")
+                return redirect("edit_variant", variant_id=variant_id)
+        except ValueError:
+            messages.error(request, "Price value must be a number.")
+            return redirect("edit_variant", variant_id=variant_id)
 
         if discount_type == "none":
             discount_type = None
