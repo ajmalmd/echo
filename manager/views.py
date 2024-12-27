@@ -303,7 +303,7 @@ def edit_product(request, product_id):
 
     return redirect("products")
 
-
+@user_passes_test(is_staff_user)
 def add_variant(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
@@ -386,7 +386,7 @@ def add_variant(request, product_id):
 
     return redirect("product_view", product_id=product.id)
 
-
+@user_passes_test(is_staff_user)
 def edit_variant(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
     product_id = variant.product.id

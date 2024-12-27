@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from .models import User, OTP, Address
 from manager.models import Brand, Product, ProductVariant
 from .services import generate_otp, send_otp_email, get_new_arrivals
@@ -421,10 +422,10 @@ def view_variant(request, variant_id):
     return render(request, "store/variant_view.html", context)
 
 
+
+@login_required(login_url="login")
 @user_passes_test(is_customer)
 def addresses(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
 
     default_address = request.user.addresses.filter(is_default=True).first()
     saved_addresses = request.user.addresses.filter(is_default=False)
