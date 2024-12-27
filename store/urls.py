@@ -12,4 +12,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("products/", views.products_listing, name='store_products'),
     path('variant/<int:variant_id>/', views.view_variant, name='view_variant'),
+    
+    #profile
+    path("addresses/", views.addresses, name='addresses'),
 ]

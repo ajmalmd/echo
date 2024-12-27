@@ -84,18 +84,24 @@
           <div class="flex flex-wrap gap-3">
             {% for other_variant in other_variants %}
               <a href="{% url 'view_variant' other_variant.id %}" class="block text-center">
-                <img src="{{ other_variant.images.first.image_path.url }}" alt="{{ other_variant.name }}" class="w-12 h-12 sm:w-14 sm:h-14 object-contain mx-auto border rounded p-1 hover:border-blue-500 transition-colors" />
+                <img src="{{ other_variant.images.first.image_path.url }}" alt="{{ other_variant.name }}" class="w-12 h-12 sm:w-14 sm:h-14 object-contain mx-auto border rounded p-1 hover:border-blue-500 transition-colors {% if other_variant.stock == 0 %}opacity-50{% endif %}" />
                 <p class="text-xs mt-1 max-w-[80px] truncate">{{ other_variant.name }}</p>
               </a>
             {% endfor %}
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white py-2">
-          <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">BUY NOW</button>
-          <button class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">ADD TO CART</button>
-        </div>
+        {% if not variant.is_active or not product.is_active or not brand.is_active %}
+          <p class="text-red-500">Not Available</p>
+        {% elif variant.stock %}
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white py-2">
+            <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">BUY NOW</button>
+            <button class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">ADD TO CART</button>
+          </div>
+        {% else %}
+          <p class="text-red-500">Out of Stock</p>
+        {% endif %}
 
         <div class="pb-4">
           <p class="text-sm sm:text-base text-gray-600">

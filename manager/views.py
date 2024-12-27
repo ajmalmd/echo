@@ -435,7 +435,7 @@ def edit_variant(request, variant_id):
                 messages.error(request, "Invalid discount value.")
                 return redirect("edit_variant", variant_id=variant_id)
 
-        if not name or not price or not stock:
+        if not name or not price:
             messages.error(request, "All fields are required.")
             return redirect("edit_variant", variant_id=variant_id)
         if not is_valid_name(name):

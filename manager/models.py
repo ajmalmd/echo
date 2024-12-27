@@ -95,7 +95,8 @@ class ProductVariant(models.Model):
             product__type=self.product.type,
             product__connectivity=self.product.connectivity,
             is_active=True,
-            product__is_active=True
+            product__is_active=True,
+            stock__gt=0
         )
         .exclude(product=self.product)
         .distinct("product")

@@ -40,7 +40,7 @@
                       "id": "{{ brand.id }}",
                       "name": "{{ brand.name }}"
                   }
-              </script>
+                </script>
                 <a onclick="toggleEditBrandModal(JSON.parse(document.getElementById('brand-{{ brand.id }}').textContent))" href="#" class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500" title="Edit"><i class="fas fa-edit"></i></a>
                 <!-- Block/Unblock Button -->
                 {% if brand.is_active %}
