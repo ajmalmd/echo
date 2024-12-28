@@ -381,6 +381,7 @@ def products_listing(request):
     brands = Brand.objects.filter(is_active=True)
 
     sort_by = request.GET.get("sort", "featured")  # Default to 'featured'
+    search_query = request.GET.get("search", "")  # Get the search query
 
     products = (
         ProductVariant.objects.filter(
@@ -398,25 +399,35 @@ def products_listing(request):
             review_count=Count("product__reviews"),
         )
     )
-    
+
+    # Apply search filter
+    if search_query:
+        products = products.filter(
+            Q(product_name__icontains=search_query)
+            | Q(brand_name__icontains=search_query)
+            | Q(product__description__icontains=search_query)
+        )
+
     # Apply sorting
-    if sort_by == 'popularity':
-        products = products.annotate(popularity=Count('order_items')).order_by('-popularity')
-    elif sort_by == 'price_low_high':
-        products = products.order_by('price')
-    elif sort_by == 'price_high_low':
-        products = products.order_by('-price')
-    elif sort_by == 'avg_rating':
-        products = products.order_by('-avg_rating')
-    elif sort_by == 'new_arrivals':
-        products = products.order_by('-product__created_at')
-    elif sort_by == 'name_asc':
-        products = products.order_by('product_name')
-    elif sort_by == 'name_desc':
-        products = products.order_by('-product_name')
+    if sort_by == "popularity":
+        products = products.annotate(popularity=Count("order_items")).order_by(
+            "-popularity"
+        )
+    elif sort_by == "price_low_high":
+        products = products.order_by("price")
+    elif sort_by == "price_high_low":
+        products = products.order_by("-price")
+    elif sort_by == "avg_rating":
+        products = products.order_by("-avg_rating")
+    elif sort_by == "new_arrivals":
+        products = products.order_by("-product__created_at")
+    elif sort_by == "name_asc":
+        products = products.order_by("product_name")
+    elif sort_by == "name_desc":
+        products = products.order_by("-product_name")
     else:  # 'featured' or default - featuring products with higher stock
-        products = products.order_by('-stock')
-        
+        products = products.order_by("-stock")
+
     return render(
         request,
         "store/products_list.html",
@@ -425,6 +436,7 @@ def products_listing(request):
             "productModel": Product,
             "products": products,
             "current_sort": sort_by,
+            "search_query": search_query,
         },
     )
 
