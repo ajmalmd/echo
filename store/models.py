@@ -176,7 +176,7 @@ class OrderItem(models.Model):
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product_variant = models.ForeignKey(
-        'manager.ProductVariant', on_delete=models.SET_NULL, null=True
+        'manager.ProductVariant', on_delete=models.SET_NULL, null=True, related_name="order_items"
     )
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)

@@ -10,7 +10,8 @@ from django.contrib.auth.decorators import user_passes_test
 from django.utils.timezone import now, timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
-from django.db.models import Avg, Count, F, Q
+from django.db.models import Avg, Count, F, Q, Value
+from django.db.models.functions import Concat
 
 
 def is_customer(user):
@@ -393,7 +394,7 @@ def products_listing(request):
         .select_related("product")
         .prefetch_related("images")
         .annotate(
-            product_name=F("product__name"),
+            product_name=Concat(F("product__name"),Value(" - "),F("name")),
             brand_name=F("product__brand__name"),
             avg_rating=Avg("product__reviews__rating"),
             review_count=Count("product__reviews"),
@@ -410,13 +411,11 @@ def products_listing(request):
 
     # Apply sorting
     if sort_by == "popularity":
-        products = products.annotate(popularity=Count("order_items")).order_by(
-            "-popularity"
-        )
+        products = products.annotate(popularity=Count("order_items")).order_by("-popularity")
     elif sort_by == "price_low_high":
-        products = products.order_by("price")
+        products = sorted(products, key=lambda p: p.discounted_price())
     elif sort_by == "price_high_low":
-        products = products.order_by("-price")
+        products = sorted(products, key=lambda p: p.discounted_price(), reverse=True)
     elif sort_by == "avg_rating":
         products = products.order_by("-avg_rating")
     elif sort_by == "new_arrivals":
