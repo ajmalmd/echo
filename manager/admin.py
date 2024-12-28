@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Brand, Product, ProductVariant, ProductImage
+from .models import *
 
 
 @admin.register(Brand)

@@ -99,9 +99,9 @@ def brands(request):
     if search_query:
         brands = Brand.objects.filter(name__icontains=search_query).annotate(
             product_count=Count("products")
-        )
+        ).order_by("created_at")
     else:
-        brands = Brand.objects.annotate(product_count=Count("products"))
+        brands = Brand.objects.annotate(product_count=Count("products")).order_by("created_at")
 
     page_obj = paginate_items(request, brands, per_page=10)
 
@@ -181,9 +181,9 @@ def products(request):
     if search_query:
         products = Product.objects.filter(name__icontains=search_query).annotate(
             variant_count=Count("variants")
-        )
+        ).order_by("-created_at")
     else:
-        products = Product.objects.all().annotate(variant_count=Count("variants"))
+        products = Product.objects.all().annotate(variant_count=Count("variants")).order_by("-created_at")
 
     page_obj = paginate_items(request, products, per_page=10)
     brands = Brand.objects.filter(is_active=True)
@@ -207,7 +207,7 @@ def toggle_product_status(request, product_id):
 @never_cache
 def product_view(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    variants = product.variants.all()
+    variants = product.variants.all().order_by("-created_at")
     images = {variant.id: variant.images.all() for variant in variants}
     return render(
         request,

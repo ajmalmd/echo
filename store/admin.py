@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Review
+from .models import *
 
 
 @admin.register(User)
@@ -27,3 +27,10 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ('product', 'user', 'rating', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('product__name', 'user__fullname')
+
+admin.site.register(OTP)
+admin.site.register(Cart)
+admin.site.register(CartItem)
+admin.site.register(Address)
+admin.site.register(Order)
+admin.site.register(OrderItem)

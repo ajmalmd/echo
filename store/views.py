@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.utils.timezone import now, timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
-from django.db.models import F
+from django.db.models import Avg, Count, F, Q
 
 
 def is_customer(user):
@@ -379,6 +379,9 @@ def home(request):
 
 def products_listing(request):
     brands = Brand.objects.filter(is_active=True)
+
+    sort_by = request.GET.get("sort", "featured")  # Default to 'featured'
+
     products = (
         ProductVariant.objects.filter(
             is_active=True,
@@ -388,12 +391,41 @@ def products_listing(request):
         )
         .select_related("product")
         .prefetch_related("images")
-        .annotate(product_name=F("product__name"), brand_name=F("product__brand__name"))
+        .annotate(
+            product_name=F("product__name"),
+            brand_name=F("product__brand__name"),
+            avg_rating=Avg("product__reviews__rating"),
+            review_count=Count("product__reviews"),
+        )
     )
+    
+    # Apply sorting
+    if sort_by == 'popularity':
+        products = products.annotate(popularity=Count('order_items')).order_by('-popularity')
+    elif sort_by == 'price_low_high':
+        products = products.order_by('price')
+    elif sort_by == 'price_high_low':
+        products = products.order_by('-price')
+    elif sort_by == 'avg_rating':
+        products = products.order_by('-avg_rating')
+    elif sort_by == 'new_arrivals':
+        products = products.order_by('-product__created_at')
+    elif sort_by == 'name_asc':
+        products = products.order_by('product_name')
+    elif sort_by == 'name_desc':
+        products = products.order_by('-product_name')
+    else:  # 'featured' or default - featuring products with higher stock
+        products = products.order_by('-stock')
+        
     return render(
         request,
         "store/products_list.html",
-        {"brands": brands, "productModel": Product, "products": products},
+        {
+            "brands": brands,
+            "productModel": Product,
+            "products": products,
+            "current_sort": sort_by,
+        },
     )
 
 
@@ -420,7 +452,6 @@ def view_variant(request, variant_id):
     }
 
     return render(request, "store/variant_view.html", context)
-
 
 
 @login_required(login_url="login")
@@ -457,7 +488,7 @@ def addresses(request):
             except Address.DoesNotExist:
                 messages.error(request, "Address not found.")
             return redirect("addresses")
-        
+
         name = request.POST.get("name")
         phone = request.POST.get("phone")
         address_line_1 = request.POST.get("address_line_1")
@@ -467,7 +498,7 @@ def addresses(request):
         postal_code = request.POST.get("postal_code")
         country = request.POST.get("country")
         is_default = request.POST.get("is_default")
-        
+
         # validations
         if not is_valid_name(name):
             messages.error(request, "Invalid name. Use only alphabets and spaces.")
@@ -488,13 +519,11 @@ def addresses(request):
         if not is_valid_postalcode(postal_code):
             messages.error(request, "Invalid postal code.")
             return redirect("addresses")
-        
+
         if not is_valid_name(country):
             messages.error(request, "Invalid country name.")
             return redirect("addresses")
-        
-        
-        
+
         # edit address
         address_id = request.POST.get("edit")
         if address_id:
@@ -513,9 +542,7 @@ def addresses(request):
             except Address.DoesNotExist:
                 messages.error(request, "Address not found.")
             return redirect("addresses")
-        
-        
-        
+
         # add new address
         if is_default == "on":
             is_default = True

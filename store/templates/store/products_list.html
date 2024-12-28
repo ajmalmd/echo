@@ -51,11 +51,15 @@
       <!-- Product Grid -->
       <div class="flex-1">
         <div class="flex justify-end mb-6">
-          <select class="border rounded-md px-4 py-2">
-            <option>SORT BY</option>
-            <option>Price: Low to High</option>
-            <option>Price: High to Low</option>
-            <option>Newest First</option>
+          <select id="sort-select" class="border rounded-md px-4 py-2" onchange="updateSort(this.value)">
+            <option value="featured" {% if current_sort == 'featured' %}selected{% endif %}>Featured</option>
+            <option value="popularity" {% if current_sort == 'popularity' %}selected{% endif %}>Popularity</option>
+            <option value="price_low_high" {% if current_sort == 'price_low_high' %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_high_low" {% if current_sort == 'price_high_low' %}selected{% endif %}>Price: High to Low</option>
+            <option value="avg_rating" {% if current_sort == 'avg_rating' %}selected{% endif %}>Average Rating</option>
+            <option value="new_arrivals" {% if current_sort == 'new_arrivals' %}selected{% endif %}>New Arrivals</option>
+            <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>Name: A to Z</option>
+            <option value="name_desc" {% if current_sort == 'name_desc' %}selected{% endif %}>Name: Z to A</option>
           </select>
         </div>
 
@@ -90,4 +94,11 @@
       </div>
     </div>
   </div>
+  <script>
+    function updateSort(value) {
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.set('sort', value);
+      window.location.search = urlParams.toString();
+    }
+  </script>
 {% endblock %}

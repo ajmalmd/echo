@@ -7,6 +7,14 @@ from cloudinary.models import CloudinaryField  # Cloudinary image field
 class Brand(models.Model):
     name = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="created_brands"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="updated_brands"
+    )
 
     def __str__(self):
         return self.name
