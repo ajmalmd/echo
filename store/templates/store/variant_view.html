@@ -5,7 +5,7 @@
   {{ product.name }} - echo
 {% endblock %}
 
-{% block content %}
+{% block style %}
   <style>
     #productInfo::-webkit-scrollbar {
       display: none;
@@ -21,6 +21,9 @@
       }
     }
   </style>
+{% endblock %}
+
+{% block content %}
   <div class="container mx-auto px-4 py-4 max-w-7xl">
     <nav class="text-gray-300 text-sm mb-4 overflow-x-auto whitespace-nowrap">
       <a href="{% url 'home' %}" class="text-blue-400 hover:underline">Home</a> &raquo;
@@ -144,6 +147,9 @@
       {% endfor %}
     </div>
   </div>
+{% endblock %}
+
+{% block script %}
   <script>
     let zoomLevel = 2.5 // Adjust this value to change the zoom level
     

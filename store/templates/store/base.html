@@ -16,90 +16,161 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
     <style>
       body::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, and Opera */
+        display: none;
       }
-      /* Custom Fonts */
       .font-ubuntu {
         font-family: 'Ubuntu', sans-serif;
       }
       .font-roboto {
         font-family: 'Roboto', sans-serif;
       }
-    </style>
-    <!-- Page-specific styles -->
-    {% block style %}
-    {% endblock %}
-    <script>
-      // Close the message bar when the close button is clicked
-      document.addEventListener('DOMContentLoaded', () => {
-        const closeButton = document.getElementById('close-message')
-        const messageBar = document.getElementById('message-bar')
-      
-        if (closeButton) {
-          closeButton.addEventListener('click', () => {
-            messageBar.style.display = 'none'
-          })
+      @media (max-width: 768px) {
+        .mobile-menu {
+          transform: translateX(-100%);
+          transition: transform 0.3s ease-in-out;
         }
-      })
-    </script>
+        .mobile-menu.active {
+          transform: translateX(0);
+        }
+      }
+    </style>
+    {% block style %}
+
+    {% endblock %}
   </head>
   <body class="flex flex-col min-h-screen bg-gray-50 text-gray-800">
     <!-- Header -->
-    <header class="bg-white shadow-md">
-      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 class="text-3xl font-regular font-ubuntu">echo.</h1>
-        <nav>
-          <ul class="flex space-x-6 items-center">
+    <header class="bg-white shadow-md relative">
+      <!-- Mobile Menu Overlay -->
+      <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+      <div class="container mx-auto px-4">
+        <!-- Top Bar -->
+        <div class="py-4 flex flex-wrap items-center justify-between gap-4">
+          <!-- Left Section: Logo and Menu Button -->
+          <div class="flex items-center gap-4">
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="lg:hidden text-gray-600 hover:text-gray-900"><i class="fas fa-bars text-xl"></i></button>
+            <!-- Logo -->
+            <a href="{% url 'home' %}" class="shrink-0"><h1 class="text-3xl font-regular font-ubuntu">echo.</h1></a>
+          </div>
+
+          <!-- Search Bar - Full width on mobile, auto on desktop -->
+          <div class="order-3 lg:order-2 w-full lg:w-auto lg:flex-1 lg:max-w-2xl">
+            <form action="{% url 'store_products' %}" method="get" class="relative">
+              <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search for products..." class="w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200" />
+              <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-search"></i></button>
+            </form>
+          </div>
+
+          <!-- Desktop Navigation -->
+          <nav class="hidden lg:block order-2 lg:order-3">
+            <ul class="flex items-center space-x-6">
+              <li>
+                <a href="{% url 'store_products' %}" class="text-gray-700 hover:text-gray-900">Products</a>
+              </li>
+              <li>
+                <a href="" class="text-gray-700 hover:text-gray-900">Contact</a>
+              </li>
+              {% if user.is_authenticated %}
+                <div class="flex space-x-4 ml-6">
+                  <!-- Profile Icon with Hover Dropdown -->
+                  <div class="relative group">
+                    <a href="#" class="text-gray-700 hover:text-gray-900 peer"><i class="fas fa-user text-lg"></i></a>
+                    <ul class="absolute hidden group-hover:block bg-white shadow-md rounded-lg mt-2 right-0 w-40 py-2 top-5 text-gray-700 text-sm z-50">
+                      <li class="hover:bg-gray-100">
+                        <a href="" class="block px-4 py-2">Profile</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="" class="block px-4 py-2">Orders</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="{% url 'addresses' %}" class="block px-4 py-2">Addresses</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="" class="block px-4 py-2">Wallet</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="" class="block px-4 py-2">Coupon</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="" class="block px-4 py-2">Change Password</a>
+                      </li>
+                      <li class="hover:bg-gray-100">
+                        <a href="{% url 'logout' %}" class="block px-4 py-2">Logout</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-heart text-lg"></i></a>
+                  <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-shopping-cart text-lg"></i></a>
+                </div>
+              {% else %}
+                {% if request.path == '/login/' %}
+                  <li>
+                    <a href="{% url 'signup' %}" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu">SIGN UP</a>
+                  </li>
+                {% else %}
+                  <li>
+                    <a href="{% url 'login' %}" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu">LOGIN</a>
+                  </li>
+                {% endif %}
+              {% endif %}
+            </ul>
+          </nav>
+
+          <!-- Mobile Icons -->
+          <div class="flex items-center gap-4 lg:hidden">
+            {% if user.is_authenticated %}
+              <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-heart text-lg"></i></a>
+              <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-shopping-cart text-lg"></i></a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
+      <div id="mobile-menu" class="mobile-menu fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 lg:hidden overflow-y-auto">
+        <div class="p-4 border-b">
+          <button id="close-menu" class="text-gray-600 hover:text-gray-900"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <nav class="p-4">
+          <ul class="space-y-4">
             <li>
-              <a href="{% url 'store_products' %}" class="text-gray-700 hover:text-gray-900">Products</a>
+              <a href="{% url 'store_products' %}" class="block text-gray-700 hover:text-gray-900">Products</a>
             </li>
             <li>
-              <a href="" class="text-gray-700 hover:text-gray-900">Contact</a>
+              <a href="" class="block text-gray-700 hover:text-gray-900">Contact</a>
             </li>
             {% if user.is_authenticated %}
-              <!-- Adding extra spacing between Contact and icons -->
-              <div class="flex space-x-4 ml-6">
-                <!-- Profile Icon with Hover Dropdown -->
-                <div class="relative group">
-                  <a href="#" class="text-gray-700 hover:text-gray-900 peer"><i class="fas fa-user text-lg"></i></a>
-                  <!-- Dropdown Menu -->
-                  <ul class="absolute hidden peer-hover:block hover:block bg-white shadow-md rounded-lg mt-2 right-0 w-40 py-2 top-5 text-gray-700 text-sm z-10">
-                    <li class="hover:bg-gray-100">
-                      <a href="" class="block px-4 py-2">Profile</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="" class="block px-4 py-2">Orders</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="{% url 'addresses' %}" class="block px-4 py-2">Addresses</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="" class="block px-4 py-2">Wallet</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="" class="block px-4 py-2">Coupon</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="" class="block px-4 py-2">Change Password</a>
-                    </li>
-                    <li class="hover:bg-gray-100">
-                      <a href="{% url 'logout' %}" class="block px-4 py-2">Logout</a>
-                    </li>
-                  </ul>
-                </div>
-                <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-heart text-lg"></i></a>
-                <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-shopping-cart text-lg"></i></a>
-              </div>
+              <li class="pt-4 border-t">
+                <a href="" class="block text-gray-700 hover:text-gray-900">Profile</a>
+              </li>
+              <li>
+                <a href="" class="block text-gray-700 hover:text-gray-900">Orders</a>
+              </li>
+              <li>
+                <a href="{% url 'addresses' %}" class="block text-gray-700 hover:text-gray-900">Addresses</a>
+              </li>
+              <li>
+                <a href="" class="block text-gray-700 hover:text-gray-900">Wallet</a>
+              </li>
+              <li>
+                <a href="" class="block text-gray-700 hover:text-gray-900">Coupon</a>
+              </li>
+              <li>
+                <a href="" class="block text-gray-700 hover:text-gray-900">Change Password</a>
+              </li>
+              <li>
+                <a href="{% url 'logout' %}" class="block text-gray-700 hover:text-gray-900">Logout</a>
+              </li>
             {% else %}
-              {% if request.path == '/login/' %}
-                <li>
-                  <a href="{% url 'signup' %}" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu">SIGN UP</a>
-                </li>
-              {% else %}
-                <li>
-                  <a href="{% url 'login' %}" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu">LOGIN</a>
-                </li>
-              {% endif %}
+              <li class="pt-4 border-t">
+                {% if request.path == '/login/' %}
+                  <a href="{% url 'signup' %}" class="block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu text-center">SIGN UP</a>
+                {% else %}
+                  <a href="{% url 'login' %}" class="block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu text-center">LOGIN</a>
+                {% endif %}
+              </li>
             {% endif %}
           </ul>
         </nav>
@@ -123,27 +194,22 @@
       {% endif %}
       <div class="m-5">
         {% block content %}
-          <!-- Page-specific content goes here -->
+
         {% endblock %}
       </div>
     </main>
 
     <footer class="bg-gray-800 text-gray-300">
       <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
-        <!-- Logo -->
         <div class="mb-4 md:mb-0">
           <span class="text-3xl font-regular font-ubuntu text-white">echo.</span>
         </div>
-
-        <!-- Links -->
-        <div class="flex space-x-4 text-sm">
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
           <a href="#" class="hover:underline">Policy</a>
           <a href="#" class="hover:underline">About Us</a>
           <a href="#" class="hover:underline">Terms & Conditions</a>
           <a href="#" class="hover:underline">Contact</a>
         </div>
-
-        <!-- Social Media Icons -->
         <div class="flex space-x-4 mt-4 md:mt-0">
           <a href="#" class="hover:text-white"><i class="fab fa-facebook"></i></a>
           <a href="#" class="hover:text-white"><i class="fab fa-twitter"></i></a>
@@ -152,8 +218,55 @@
       </div>
       <div class="text-center text-gray-500 text-sm mt-4">© Copyright 2021. All rights reserved.</div>
     </footer>
-    <!-- Page-specific scripts -->
+
+    <!-- Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Message bar functionality
+        const closeButton = document.getElementById('close-message')
+        const messageBar = document.getElementById('message-bar')
+        if (closeButton && messageBar) {
+          closeButton.addEventListener('click', () => {
+            messageBar.style.display = 'none'
+          })
+        }
+      
+        // Mobile menu functionality
+        const menuButton = document.getElementById('mobile-menu-button')
+        const closeMenuButton = document.getElementById('close-menu')
+        const mobileMenu = document.getElementById('mobile-menu')
+        const menuOverlay = document.getElementById('menu-overlay')
+      
+        function toggleMenu() {
+          mobileMenu.classList.toggle('active')
+          menuOverlay.classList.toggle('hidden')
+          document.body.classList.toggle('overflow-hidden')
+        }
+      
+        if (menuButton && closeMenuButton && mobileMenu && menuOverlay) {
+          menuButton.addEventListener('click', toggleMenu)
+          closeMenuButton.addEventListener('click', toggleMenu)
+          menuOverlay.addEventListener('click', toggleMenu)
+        }
+      
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (event) => {
+          if (mobileMenu.classList.contains('active') && !mobileMenu.contains(event.target) && event.target !== menuButton) {
+            toggleMenu()
+          }
+        })
+      
+        // Close mobile menu on window resize (e.g., when switching to desktop view)
+        window.addEventListener('resize', () => {
+          if (window.innerWidth >= 1024 && mobileMenu.classList.contains('active')) {
+            toggleMenu()
+          }
+        })
+      })
+    </script>
+
     {% block script %}
+
     {% endblock %}
   </body>
 </html>
