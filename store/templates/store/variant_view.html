@@ -49,6 +49,7 @@
       </div>
 
       <!-- Product Info -->
+      {% csrf_token %}
       <div class="space-y-4 overflow-y-auto max-h-[calc(100vh-2rem)] no-scrollbar px-1" id="productInfo">
         <h1 class="text-xl sm:text-2xl font-bold">{{ brand.name }} {{ product.name }} - {{ variant.name }}</h1>
         <div class="text-lg sm:text-xl flex flex-wrap items-center gap-2">
@@ -100,7 +101,7 @@
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white py-2">
             <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">BUY NOW</button>
-            <button class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">ADD TO CART</button>
+            <button id="add-to-cart" data-variant-id="{{ variant.id }}" class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">ADD TO CART</button>
           </div>
         {% else %}
           <p class="text-red-500">Out of Stock</p>
@@ -151,6 +152,48 @@
 
 {% block script %}
   <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const addToCartBtn = document.getElementById('add-to-cart')
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value
+    
+      if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', function () {
+          const variantId = this.dataset.variantId
+    
+          fetch(`{% url 'add_to_cart' %}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrfToken,
+              "Content-Type": "application/json",
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              variant_id: variantId
+            })
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // Update cart item count in the header
+                const cartCountElement = document.getElementById('cart-count')
+                if (cartCountElement) {
+                  cartCountElement.textContent = data.cart_item_count
+                }
+    
+                // Show a success message
+                alert('Item added to cart successfully')
+              } else {
+                alert(data.message)
+              }
+            })
+            .catch((error) => {
+              console.error('Error:', error)
+              alert('An error occurred while adding the item to cart')
+            })
+        })
+      }
+    })
+    
     let zoomLevel = 2.5 // Adjust this value to change the zoom level
     
     function updateMainImage(src) {

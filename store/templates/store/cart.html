@@ -1,0 +1,166 @@
+{% extends 'store/base.html' %}
+
+{% block title %}
+  Cart - Echo
+{% endblock %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-regular font-ubuntu mb-8">Bag</h1>
+    <div class="flex flex-col md:flex-row gap-8">
+      <div class="w-full md:w-3/4" id="cart-items">
+        {% if cart_items %}
+          {% for item in cart_items %}
+            <div class="flex items-start border rounded-lg p-4 mb-4 bg-white relative group" data-item-id="{{ item.product_variant.id }}">
+              <!-- Close Button -->
+              <button class="absolute top-2 right-2 text-gray-400 hover:text-red-600 remove-item">
+                <i class="fas fa-times"></i>
+              </button>
+
+              <!-- Product Image -->
+              <div class="flex-shrink-0 w-24 h-24 bg-gray-50 rounded-md overflow-hidden">
+                <img src="{{ item.product_variant.images.first.image_path.url }}" alt="{{ item.product_variant.name }}" class="w-full h-full object-contain" />
+              </div>
+
+              <!-- Product Details -->
+              <div class="ml-4 flex-grow">
+                <h1 class="text-lg font-semibold text-gray-900">{{ item.product_variant.product.name }} - {{ item.product_variant.name }}</h1>
+
+                <!-- Quantity Selectors -->
+                <div class="flex items-center gap-2 mt-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">Qty:</span>
+                    <select class="border rounded px-2 py-1 text-sm quantity-select">
+                      {% with max_qty=item.product_variant.stock %}
+                        {% if max_qty > 3 %}
+                          {% with max_qty=3 %}
+                            {% for i in "123"|make_list %}
+                              <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
+                                {{ forloop.counter }}
+                              </option>
+                            {% endfor %}
+                          {% endwith %}
+                        {% else %}
+                          {% for i in max_qty|ljust:max_qty|make_list %}
+                            <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
+                              {{ forloop.counter }}
+                            </option>
+                          {% endfor %}
+                        {% endif %}
+                      {% endwith %}
+                    </select>
+                  </div>
+                  {% if item.product_variant.stock < 3%}<span class="text-sm text-orange-500">{{ item.product_variant.stock }} left</span>{% endif %}
+                </div>
+                <!-- Price Details -->
+                <div class="flex items-center gap-2 mt-4">
+                  <span class="text-lg font-semibold">₹{{ item.product_variant.discounted_price }}</span>
+                  {% if item.product_variant.is_discount_active %}
+                    <span class="text-sm text-gray-400 line-through">₹{{ item.product_variant.price }}</span>
+                    <p class="text-sm text-red-600">{% if item.product_variant.discount_type == 'percentage' %}{{item.product_variant.discount_value}}% OFF{% else %}₹{{item.product_variant.discount_value}} OFF{% endif %}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-8">
+            <p class="text-gray-500">Your cart is empty</p>
+            <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="w-full md:w-1/4 bg-white border rounded-lg p-6 h-fit sticky top-4">
+        <h2 class="text-xl font-semibold mb-4">Cart Summary</h2>
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total MRP:</span>
+            <span>₹<span id="total-mrp">{{ total_mrp }}</span></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Discount on MRP</span>
+            <span class="text-green-400">₹<span id="total-discount">{{ total_discount }}</span></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Shipping:</span>
+            <span>FREE</span>
+          </div>
+          <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
+            <span>Total:</span>
+            <span>₹<span id="total">{{ total }}</span></span>
+          </div>
+        </div>
+        <button class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
+          Proceed to Checkout
+        </button>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Handle quantity changes
+    document.querySelectorAll('.quantity-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const itemContainer = this.closest('[data-item-id]');
+            const variantId = itemContainer.dataset.itemId;
+            
+            updateCart('update', variantId, this.value);
+        });
+    });
+
+    // Handle remove item
+    document.querySelectorAll('.remove-item').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemContainer = this.closest('[data-item-id]');
+            const variantId = itemContainer.dataset.itemId;
+            
+            updateCart('remove', variantId, 0);
+            itemContainer.remove();
+        });
+    });
+
+    function updateCart(action, variantId, quantity) {
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('variant_id', variantId);
+        formData.append('quantity', quantity);
+
+        fetch('{% url "cart" %}', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Update cart totals
+            document.getElementById('total').textContent = data.total;
+            document.getElementById('total-mrp').textContent = data.total_mrp;
+            document.getElementById('total-discount').textContent = data.total_discount;
+            
+            // If cart is empty, show empty cart message
+            if (data.item_count === 0) {
+                document.getElementById('cart-items').innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-gray-500">Your cart is empty</p>
+                        <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">
+                            Continue Shopping
+                        </a>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+</script>
+{% endblock %}
+

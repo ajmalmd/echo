@@ -14,6 +14,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet" />
     <!-- Font Awesome CDN -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
       body::-webkit-scrollbar {
         display: none;
@@ -102,7 +105,7 @@
                     </ul>
                   </div>
                   <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-heart text-lg"></i></a>
-                  <a href="" class="text-gray-700 hover:text-gray-900"><i class="fas fa-shopping-cart text-lg"></i></a>
+                  <a href="{% url 'cart' %}" class="text-gray-700 hover:text-gray-900"><i class="fas fa-shopping-cart text-lg"></i></a>
                 </div>
               {% else %}
                 {% if request.path == '/login/' %}

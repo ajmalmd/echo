@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from .models import User, OTP, Address
-from manager.models import Brand, Product, ProductVariant
+from .models import *
+from manager.models import *
 from .services import generate_otp, send_otp_email, get_new_arrivals
 from .validators import *
 from django.contrib.auth.decorators import user_passes_test
@@ -12,6 +12,8 @@ from datetime import datetime
 from django.views.decorators.cache import never_cache
 from django.db.models import Avg, Count, F, Q, Value
 from django.db.models.functions import Concat
+import json
+from django.http import JsonResponse
 
 
 def is_customer(user):
@@ -394,7 +396,7 @@ def products_listing(request):
         .select_related("product")
         .prefetch_related("images")
         .annotate(
-            product_name=Concat(F("product__name"),Value(" - "),F("name")),
+            product_name=Concat(F("product__name"), Value(" - "), F("name")),
             brand_name=F("product__brand__name"),
             avg_rating=Avg("product__reviews__rating"),
             review_count=Count("product__reviews"),
@@ -411,7 +413,9 @@ def products_listing(request):
 
     # Apply sorting
     if sort_by == "popularity":
-        products = products.annotate(popularity=Count("order_items")).order_by("-popularity")
+        products = products.annotate(popularity=Count("order_items")).order_by(
+            "-popularity"
+        )
     elif sort_by == "price_low_high":
         products = sorted(products, key=lambda p: p.discounted_price())
     elif sort_by == "price_high_low":
@@ -579,3 +583,107 @@ def addresses(request):
         "store/addresses.html",
         {"default_address": default_address, "saved_addresses": saved_addresses},
     )
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def cart(request):
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.select_related(
+        "product_variant", "product_variant__product"
+    ).all()
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if request.method == "POST":
+            action = request.POST.get("action")
+            variant_id = request.POST.get("variant_id")
+            quantity = int(request.POST.get("quantity", 1))
+
+            variant = ProductVariant.objects.get(id=variant_id)
+            max_qty = min(variant.stock, 3)
+
+            if action == "add":
+                cart_item, created = CartItem.objects.get_or_create(
+                    cart=cart, product_variant=variant
+                )
+                if not created:
+                    cart_item.quantity = min(cart_item.quantity + quantity, max_qty)
+                cart_item.save()
+
+            elif action == "update":
+                cart_item = CartItem.objects.get(cart=cart, product_variant=variant)
+                cart_item.quantity = min(quantity, max_qty)
+                cart_item.save()
+
+            elif action == "remove":
+                CartItem.objects.filter(cart=cart, product_variant=variant).delete()
+
+            total_mrp = cart.total_price()
+            total_discounted = cart.total_discounted_price()
+            return JsonResponse(
+                {
+                    "total": total_discounted,
+                    "total_mrp": total_mrp,
+                    "total_discount": total_mrp - total_discounted,
+                    "item_count": cart.items.count(),
+                    "max_qty": max_qty,
+                }
+            )
+
+    total_mrp = cart.total_price()
+    total_discounted = cart.total_discounted_price()
+    context = {
+        "cart_items": cart_items,
+        "total": total_discounted,
+        "total_mrp": total_mrp,
+        "total_discount": total_mrp - total_discounted,
+    }
+    return render(request, "store/cart.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def add_to_cart(request):
+    if (
+        request.method == "POST"
+        and request.headers.get("x-requested-with") == "XMLHttpRequest"
+    ):
+        data = json.loads(request.body)  # Parse JSON data
+        variant_id = data.get("variant_id")
+        variant = get_object_or_404(ProductVariant, id=variant_id)
+        max_qty = min(variant.stock, 3)
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_item, item_created = CartItem.objects.get_or_create(
+            cart=cart, product_variant=variant
+        )
+
+        if max_qty == 0:
+            return JsonResponse(
+                {"success": False, "message": "This product is out of stock"},
+                status=400,
+            )
+
+        if cart_item.quantity >= max_qty:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"You can only add up to {max_qty} units of this product",
+                },
+                status=400,
+            )
+
+        if not item_created:
+            cart_item.quantity += 1
+            cart_item.save()
+
+        cart_item_count = cart.items.count()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Item added to cart successfully",
+                "cart_item_count": cart_item_count,
+            }
+        )
+
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
