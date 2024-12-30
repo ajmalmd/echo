@@ -139,7 +139,7 @@
               {% else %}
                 <p class="text-base sm:text-lg font-bold text-black-600 mt-1">₹ {{ similar_variant.price }}</p>
               {% endif %}
-              <button class="mt-3 w-full bg-gray-900 text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm sm:text-base">Add to Cart</button>
+              <button data-variant-id="{{ similar_variant.id }}" class="add-to-cart-btn mt-3 w-full bg-gray-900 text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm sm:text-base">Add to Cart</button>
             </div>
           </div>
         </a>
@@ -153,45 +153,67 @@
 {% block script %}
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const addToCartBtn = document.getElementById('add-to-cart')
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value
     
+      function addToCart(variantId) {
+        fetch(`{% url 'add_to_cart' %}`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            variant_id: variantId
+          })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // Update cart item count in the header
+              const cartCountElement = document.getElementById('cart-count')
+              if (cartCountElement) {
+                cartCountElement.textContent = data.cart_item_count
+              }
+    
+              Swal.fire({
+                icon: 'success',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            } else {
+              Swal.fire({
+                icon: 'info',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('An error occurred while adding the item to cart')
+          })
+      }
+    
+      const addToCartBtn = document.getElementById('add-to-cart')
       if (addToCartBtn) {
         addToCartBtn.addEventListener('click', function () {
           const variantId = this.dataset.variantId
-    
-          fetch(`{% url 'add_to_cart' %}`, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': csrfToken,
-              "Content-Type": "application/json",
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-              variant_id: variantId
-            })
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                // Update cart item count in the header
-                const cartCountElement = document.getElementById('cart-count')
-                if (cartCountElement) {
-                  cartCountElement.textContent = data.cart_item_count
-                }
-    
-                // Show a success message
-                alert('Item added to cart successfully')
-              } else {
-                alert(data.message)
-              }
-            })
-            .catch((error) => {
-              console.error('Error:', error)
-              alert('An error occurred while adding the item to cart')
-            })
+          addToCart(variantId)
         })
       }
+    
+      // Add to cart functionality for similar variants
+      const similarVariantButtons = document.querySelectorAll('.add-to-cart-btn')
+      similarVariantButtons.forEach((button) => {
+        button.addEventListener('click', function (e) {
+          e.preventDefault()
+          const variantId = this.dataset.variantId
+          addToCart(variantId)
+        })
+      })
     })
     
     let zoomLevel = 2.5 // Adjust this value to change the zoom level

@@ -391,7 +391,6 @@ def products_listing(request):
             is_active=True,
             product__is_active=True,
             product__brand__is_active=True,
-            stock__gt=0,
         )
         .select_related("product")
         .prefetch_related("images")
@@ -609,19 +608,24 @@ def cart(request):
                 if not created:
                     cart_item.quantity = min(cart_item.quantity + quantity, max_qty)
                 cart_item.save()
+                message="Item added to cart successfully"
 
             elif action == "update":
                 cart_item = CartItem.objects.get(cart=cart, product_variant=variant)
                 cart_item.quantity = min(quantity, max_qty)
                 cart_item.save()
+                message="Quantity updated successfully"
 
             elif action == "remove":
                 CartItem.objects.filter(cart=cart, product_variant=variant).delete()
+                message="Item removed from cart successfully"
 
-            total_mrp = cart.total_price()
-            total_discounted = cart.total_discounted_price()
+            total_mrp = round(cart.total_price(), 2)
+            total_discounted = round(cart.total_discounted_price(), 2)
             return JsonResponse(
                 {
+                    "success": True,
+                    "message": message,
                     "total": total_discounted,
                     "total_mrp": total_mrp,
                     "total_discount": total_mrp - total_discounted,
@@ -630,8 +634,8 @@ def cart(request):
                 }
             )
 
-    total_mrp = cart.total_price()
-    total_discounted = cart.total_discounted_price()
+    total_mrp = round(cart.total_price(), 2)
+    total_discounted = round(cart.total_discounted_price(), 2)
     context = {
         "cart_items": cart_items,
         "total": total_discounted,
@@ -677,6 +681,15 @@ def add_to_cart(request):
             cart_item.save()
 
         cart_item_count = cart.items.count()
+
+        if cart_item.quantity >= 2:
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "You have this item in your cart, We have increased the quantity by 1",
+                    "cart_item_count": cart_item_count,
+                }
+            )
 
         return JsonResponse(
             {

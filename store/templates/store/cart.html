@@ -10,6 +10,7 @@
     <div class="flex flex-col md:flex-row gap-8">
       <div class="w-full md:w-3/4" id="cart-items">
         {% if cart_items %}
+        {% csrf_token %}
           {% for item in cart_items %}
             <div class="flex items-start border rounded-lg p-4 mb-4 bg-white relative group" data-item-id="{{ item.product_variant.id }}">
               <!-- Close Button -->
@@ -76,11 +77,11 @@
         <div class="space-y-2">
           <div class="flex justify-between">
             <span class="text-gray-600">Total MRP:</span>
-            <span>₹<span id="total-mrp">{{ total_mrp }}</span></span>
+            <span>₹<span id="total-mrp">{{ total_mrp|floatformat:2 }}</span></span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Discount on MRP</span>
-            <span class="text-green-400">₹<span id="total-discount">{{ total_discount }}</span></span>
+            <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Shipping:</span>
@@ -141,6 +142,21 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            if (data.success){
+              Swal.fire({
+                icon: 'success',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            }
             // Update cart totals
             document.getElementById('total').textContent = data.total;
             document.getElementById('total-mrp').textContent = data.total_mrp;
