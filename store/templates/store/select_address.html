@@ -1,0 +1,218 @@
+{% extends 'store/base.html' %}
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="md:col-span-3">
+        {% if default_address or saved_addresses %}
+          <div class="bg-white shadow rounded-lg p-6" id="address-container">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-2xl font-semibold">Addresses</h2>
+              <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800" onclick="openAddressModal()">+ ADDRESS</button>
+            </div>
+
+            <!-- Default Addresses -->
+
+            {% if default_address %}
+              <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">DEFAULT ADDRESS</h3>
+                <div class="border rounded-lg p-4">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <p class="font-medium">{{ default_address.name }}</p>
+                      <p class="text-gray-600">{{ default_address.address_line_1 }}</p>
+                      {% if default_address.address_line_2 %}
+                        <p class="text-gray-600">{{ default_address.address_line_2 }}</p>
+                      {% endif %}
+                      <p class="text-gray-600">{{ default_address.city }}, {{ default_address.state }} - {{ default_address.postal_code }}</p>
+                      <p class="text-gray-600">{{ default_address.country }}</p>
+                      <p class="text-gray-600">Phone: {{ default_address.contact }}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                      <script type="application/json" id="address-{{ default_address.id }}">
+                    {
+                        "id": "{{ default_address.id }}",
+                        "name": "{{ default_address.name }}",
+                        "phone": "{{ default_address.contact }}",
+                        "address_line_1": "{{ default_address.address_line_1 }}",
+                        "address_line_2": "{{ default_address.address_line_2 }}",
+                        "city": "{{ default_address.city }}",
+                        "state": "{{ default_address.state }}",
+                        "postal_code": "{{ default_address.postal_code }}",
+                        "country": "{{ default_address.country }}"
+                    }
+                  </script>
+                      <button onclick="editAddress(JSON.parse(document.getElementById('address-{{ default_address.id }}').textContent))" class="text-gray-600 hover:text-gray-800"><i class="fas fa-edit"></i></button>
+                      <form method="POST" action="{% url 'checkout_address' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete" value="{{ default_address.id }}" />
+                        <button type="submit" class="text-gray-600 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Saved Addresses -->
+            <div>
+              {% if saved_addresses %}
+                <h3 class="text-lg font-medium mb-3">SAVED ADDRESSES</h3>
+              {% endif %}
+              <div class="space-y-4">
+                {% for address in saved_addresses %}
+                  <div class="border rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <p class="font-medium">{{ address.name }}</p>
+                        <p class="text-gray-600">{{ address.address_line_1 }}</p>
+                        {% if address.address_line_2 %}
+                          <p class="text-gray-600">{{ address.address_line_2 }}</p>
+                        {% endif %}
+                        <p class="text-gray-600">{{ address.city }}, {{ address.state }} - {{ address.postal_code }}</p>
+                        <p class="text-gray-600">{{ address.country }}</p>
+                        <p class="text-gray-600">Phone: {{ address.contact }}</p>
+                      </div>
+                      <div class="flex space-x-4">
+                        <form method="POST" action="{% url 'checkout_address' %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="set_default" value="{{ address.id }}" />
+                          <button type="submit" class="text-sm text-gray-600 hover:text-gray-800">SET DEFAULT</button>
+                        </form>
+                        <script type="application/json" id="address-{{ address.id }}">
+                      {
+                          "id": "{{ address.id }}",
+                          "name": "{{ address.name }}",
+                          "phone": "{{ address.contact }}",
+                          "address_line_1": "{{ address.address_line_1 }}",
+                          "address_line_2": "{{ address.address_line_2 }}",
+                          "city": "{{ address.city }}",
+                          "state": "{{ address.state }}",
+                          "postal_code": "{{ address.postal_code }}",
+                          "country": "{{ address.country }}"
+                      }
+                    </script>
+                        <button onclick="editAddress(JSON.parse(document.getElementById('address-{{ address.id }}').textContent))" class="text-gray-600 hover:text-gray-800"><i class="fas fa-edit"></i></button>
+                        <form method="POST" action="{% url 'checkout_address' %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="delete" value="{{ address.id }}" />
+                          <button type="submit" class="text-gray-600 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="w-full bg-white border rounded-lg p-6 h-fit sticky top-4">
+        <h2 class="text-xl font-semibold mb-4">Price Details</h2>
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total MRP:</span>
+            <span>₹<span id="total-mrp">{{ total_mrp|floatformat:2 }}</span></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Discount on MRP</span>
+            <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Shipping:</span>
+            <span>FREE</span>
+          </div>
+          <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
+            <span>Total:</span>
+            <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
+          </div>
+        </div>
+        <button class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Address Modal -->
+  <div id="addressModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium" id="modalTitle">Add New Address</h3>
+        {% if default_address or saved_addresses %}
+          <button onclick="closeAddressModal()" class="text-gray-600 hover:text-gray-800"><i class="fas fa-times"></i></button>
+        {% endif %}
+      </div>
+      <form id="addressForm" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="edit" id="address_id" />
+        <div class="space-y-4">
+          <div>
+            <input type="text" name="name" id="name" placeholder="Name" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <input type="tel" name="phone" minlength="10" maxlength="10" id="phone" placeholder="Mobile Number" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <input type="text" name="address_line_1" id="address_line_1" placeholder="Building Name/Number, Street Name" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <input type="text" name="address_line_2" id="address_line_2" placeholder="Town/Locality" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <input type="text" name="city" id="city" placeholder="City" required class="w-full px-3 py-2 border rounded-md" />
+            <input type="text" name="state" id="state" placeholder="State" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <input type="tel" name="postal_code" minlength="6" maxlength="6" id="postal_code" placeholder="Postal Code" required class="w-full px-3 py-2 border rounded-md" />
+            <input type="text" name="country" id="country" placeholder="Country" required class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div class="flex items-center" id="defaultAddress">
+            <input type="checkbox" name="is_default" id="is_default" class="mr-2" />
+            <label for="is_default">Set as default address</label>
+          </div>
+          <button type="submit" class="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+{% block script %}
+  <script>
+    function openAddressModal() {
+      document.getElementById('addressModal').classList.remove('hidden')
+      document.getElementById('defaultAddress').classList.remove('hidden')
+      document.getElementById('modalTitle').textContent = 'Add New Address'
+      document.getElementById('addressForm').reset()
+      document.getElementById('address_id').value = ''
+    }
+    
+    function closeAddressModal() {
+      document.getElementById('addressModal').classList.add('hidden')
+    }
+    
+    function editAddress(data) {
+      openAddressModal()
+      document.getElementById('address_id').value = data.id
+      document.getElementById('name').value = data.name
+      document.getElementById('phone').value = data.phone
+      document.getElementById('address_line_1').value = data.address_line_1
+      document.getElementById('address_line_2').value = data.address_line_2 || ''
+      document.getElementById('city').value = data.city
+      document.getElementById('state').value = data.state
+      document.getElementById('postal_code').value = data.postal_code
+      document.getElementById('country').value = data.country
+      document.getElementById('modalTitle').textContent = 'Edit Address'
+      document.getElementById('addressModal').classList.remove('hidden')
+      document.getElementById('defaultAddress').classList.add('hidden')
+    }
+
+    function checkAndOpenAddressModal() {
+      const addressCon = document.querySelector('#address-container');
+      
+      if (!addressCon || !addressCon.children.length) {
+        openAddressModal();
+      }
+    }
+
+    // Call the function when the page loads
+    document.addEventListener('DOMContentLoaded', checkAndOpenAddressModal);
+  </script>
+{% endblock %}

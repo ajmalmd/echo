@@ -608,17 +608,17 @@ def cart(request):
                 if not created:
                     cart_item.quantity = min(cart_item.quantity + quantity, max_qty)
                 cart_item.save()
-                message="Item added to cart successfully"
+                message = "Item added to cart successfully"
 
             elif action == "update":
                 cart_item = CartItem.objects.get(cart=cart, product_variant=variant)
                 cart_item.quantity = min(quantity, max_qty)
                 cart_item.save()
-                message="Quantity updated successfully"
+                message = "Quantity updated successfully"
 
             elif action == "remove":
                 CartItem.objects.filter(cart=cart, product_variant=variant).delete()
-                message="Item removed from cart successfully"
+                message = "Item removed from cart successfully"
 
             total_mrp = round(cart.total_price(), 2)
             total_discounted = round(cart.total_discounted_price(), 2)
@@ -704,3 +704,127 @@ def add_to_cart(request):
         )
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
+
+
+# select address to order
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def select_address(request):
+    default_address = request.user.addresses.filter(is_default=True).first()
+    saved_addresses = request.user.addresses.filter(is_default=False)
+    cart = Cart.objects.get(user=request.user)
+    total_mrp = round(cart.total_price(), 2)
+    total_discounted = round(cart.total_discounted_price(), 2)
+
+    if request.method == "POST":
+
+        # make default address
+        address_id = request.POST.get("set_default")
+        if address_id:
+            try:
+                address = request.user.addresses.get(id=address_id)
+                # Reset all addresses to non-default
+                request.user.addresses.update(is_default=False)
+                # Set the selected address as default
+                address.is_default = True
+                address.save()
+                messages.success(request, "Default address updated successfully.")
+            except Address.DoesNotExist:
+                messages.error(request, "Address not found.")
+            return redirect("checkout_address")
+
+        # delete address
+        address_id = request.POST.get("delete")
+        if address_id:
+            try:
+                address = request.user.addresses.get(id=address_id)
+                address.delete()
+                messages.success(request, "Address deleted successfully.")
+            except Address.DoesNotExist:
+                messages.error(request, "Address not found.")
+            return redirect("checkout_address")
+
+        name = request.POST.get("name")
+        phone = request.POST.get("phone")
+        address_line_1 = request.POST.get("address_line_1")
+        address_line_2 = request.POST.get("address_line_2")
+        city = request.POST.get("city")
+        state = request.POST.get("state")
+        postal_code = request.POST.get("postal_code")
+        country = request.POST.get("country")
+        is_default = request.POST.get("is_default")
+
+        # validations
+        if not is_valid_name(name):
+            messages.error(request, "Invalid name. Use only alphabets and spaces.")
+            return redirect("checkout_address")
+
+        if not is_valid_phone(phone):
+            messages.error(request, "Invalid phone number.")
+            return redirect("checkout_address")
+
+        if not is_valid_name(city):
+            messages.error(request, "Invalid city name.")
+            return redirect("checkout_address")
+
+        if not is_valid_name(state):
+            messages.error(request, "Invalid state name.")
+            return redirect("checkout_address")
+
+        if not is_valid_postalcode(postal_code):
+            messages.error(request, "Invalid postal code.")
+            return redirect("checkout_address")
+
+        if not is_valid_name(country):
+            messages.error(request, "Invalid country name.")
+            return redirect("checkout_address")
+
+        # edit address
+        address_id = request.POST.get("edit")
+        if address_id:
+            try:
+                address = request.user.addresses.get(id=address_id)
+                address.name = name
+                address.contact = phone
+                address.address_line_1 = address_line_1
+                address.address_line_2 = address_line_2
+                address.city = city
+                address.state = state
+                address.postal_code = postal_code
+                address.country = country
+                address.save()
+                messages.success(request, "Address updated successfully.")
+            except Address.DoesNotExist:
+                messages.error(request, "Address not found.")
+            return redirect("checkout_address")
+
+        # add new address
+        if is_default == "on":
+            is_default = True
+        else:
+            is_default = False
+
+        new_address = Address(
+            user=request.user,
+            name=name,
+            contact=phone,
+            address_line_1=address_line_1,
+            address_line_2=address_line_2,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            is_default=is_default,
+        )
+        new_address.save()
+        messages.success(request, "Address added successfully.")
+        return redirect("checkout_address")
+    return render(
+        request,
+        "store/select_address.html",
+        {
+            "default_address": default_address,
+            "saved_addresses": saved_addresses,
+            "total_mrp": total_mrp,
+            "total_discount": total_mrp - total_discounted,
+        },
+    )
