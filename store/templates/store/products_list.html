@@ -75,6 +75,7 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {% csrf_token %}
           {% for variant in products %}
             <a href="{% url 'view_variant' variant.id %}" class="block">
               <div class="bg-white p-3 sm:p-4 rounded-lg border hover:shadow-lg transition-shadow">
@@ -109,64 +110,65 @@
   
   {% block script %}
   <script>
-    function addToCart(variantId) {
-      fetch(`{% url 'add_to_cart' %}`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': csrfToken,
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-          variant_id: variantId
-        })
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            // Update cart item count in the header
-            const cartCountElement = document.getElementById('cart-count')
-            if (cartCountElement) {
-              cartCountElement.textContent = data.cart_item_count
-            }
-  
-            Swal.fire({
-              icon: 'success',
-              title: data.message,
-              showConfirmButton: false,
-              timer: 2000
-            })
-          } else {
-            Swal.fire({
-              icon: 'info',
-              title: data.message,
-              showConfirmButton: false,
-              timer: 2000
-            })
-          }
-        })
-        .catch((error) => {
-          console.error('Error:', error)
-          alert('An error occurred while adding the item to cart')
-        })
-    }
-
-    const variantButtons = document.querySelectorAll('.add-to-cart-btn')
-      variantButtons.forEach((button) => {
-        button.addEventListener('click', function (e) {
-          e.preventDefault()
-          const variantId = this.dataset.variantId
-          addToCart(variantId)
-        })
-      })
-
     function updateSort(value) {
       const urlParams = new URLSearchParams(window.location.search);
       urlParams.set('sort', value);
       window.location.search = urlParams.toString();
     }
-
+    
     document.addEventListener('DOMContentLoaded', function() {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value
+      function addToCart(variantId) {
+        fetch(`{% url 'add_to_cart' %}`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            variant_id: variantId
+          })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // Update cart item count in the header
+              const cartCountElement = document.getElementById('cart-count')
+              if (cartCountElement) {
+                cartCountElement.textContent = data.cart_item_count
+              }
+    
+              Swal.fire({
+                icon: 'success',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            } else {
+              Swal.fire({
+                icon: 'info',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2000
+              })
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('An error occurred while adding the item to cart')
+          })
+      }
+
+      const variantButtons = document.querySelectorAll('.add-to-cart-btn')
+        variantButtons.forEach((button) => {
+          button.addEventListener('click', function (e) {
+            e.preventDefault()
+            const variantId = this.dataset.variantId
+            addToCart(variantId)
+          })
+        })
+
       const filterToggle = document.getElementById('filter-toggle');
       const filterContent = document.getElementById('filter-content');
 

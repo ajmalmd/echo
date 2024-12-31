@@ -87,10 +87,15 @@ class CartItem(models.Model):
 
     def total_price(self):
         """Calculates the total price for this cart item."""
+        if not self.product_variant.is_active or not self.product_variant.product.is_active or not self.product_variant.product.brand.is_active or self.product_variant.stock <=0:
+            return 0
+            
         return self.product_variant.price * self.quantity
 
     def discounted_price(self):
         """Calculates the total discounted price for this cart item."""
+        if not self.product_variant.is_active or not self.product_variant.product.is_active or not self.product_variant.product.brand.is_active or self.product_variant.stock <=0:
+            return 0
         return self.product_variant.discounted_price() * self.quantity
 
     def clean(self):

@@ -631,6 +631,10 @@ def cart(request):
                     "total_discount": total_mrp - total_discounted,
                     "item_count": cart.items.count(),
                     "max_qty": max_qty,
+                    "item_price": variant.discounted_price(),
+                    "item_old_price": variant.price,
+                    "item_discount_type": variant.discount_type,
+                    "item_discount_value": variant.discount_value,
                 }
             )
 

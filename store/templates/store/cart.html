@@ -1,4 +1,5 @@
 {% extends 'store/base.html' %}
+{% load custom_filters %}
 
 {% block title %}
   Cart - Echo
@@ -30,35 +31,45 @@
                 <!-- Quantity Selectors -->
                 <div class="flex items-center gap-2 mt-3">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-600">Qty:</span>
-                    <select class="border rounded px-2 py-1 text-sm quantity-select">
-                      {% with max_qty=item.product_variant.stock %}
-                        {% if max_qty > 3 %}
-                          {% with max_qty=3 %}
-                            {% for i in "123"|make_list %}
+                    {% if not item.product_variant.product.brand.is_active or not item.product_variant.product.is_active or not item.product_variant.is_active %}
+                      <span class="text-sm text-red-500">Product not available</span>
+                      {% else %}
+                      <span class="text-sm text-gray-600">Qty:</span>
+                      <select class="border rounded px-2 py-1 text-sm quantity-select">
+                        {% with max_qty=item.product_variant.stock %}
+                          {% if max_qty > 3 %}
+                            {% with max_qty=3 %}
+                              {% for i in "123"|make_list %}
+                                <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
+                                  {{ forloop.counter }}
+                                </option>
+                              {% endfor %}
+                            {% endwith %}
+                          {% else %}
+                            {% for i in max_qty|ljust:max_qty|make_list %}
                               <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
                                 {{ forloop.counter }}
                               </option>
                             {% endfor %}
-                          {% endwith %}
-                        {% else %}
-                          {% for i in max_qty|ljust:max_qty|make_list %}
-                            <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
-                              {{ forloop.counter }}
-                            </option>
-                          {% endfor %}
-                        {% endif %}
-                      {% endwith %}
-                    </select>
+                          {% endif %}
+                        {% endwith %}
+                      </select>
+                      {% if item.product_variant.stock < 3%}<span class="text-sm text-orange-500">{{ item.product_variant.stock }} left</span>{% endif %}
+                    {% endif %}
                   </div>
-                  {% if item.product_variant.stock < 3%}<span class="text-sm text-orange-500">{{ item.product_variant.stock }} left</span>{% endif %}
                 </div>
                 <!-- Price Details -->
                 <div class="flex items-center gap-2 mt-4">
-                  <span class="text-lg font-semibold">₹{{ item.product_variant.discounted_price }}</span>
+                  <span class="text-lg font-semibold item-price">₹{{ item.product_variant.discounted_price|multiply:item.quantity|floatformat:2 }}</span>
                   {% if item.product_variant.is_discount_active %}
-                    <span class="text-sm text-gray-400 line-through">₹{{ item.product_variant.price }}</span>
-                    <p class="text-sm text-red-600">{% if item.product_variant.discount_type == 'percentage' %}{{item.product_variant.discount_value}}% OFF{% else %}₹{{item.product_variant.discount_value}} OFF{% endif %}</p>
+                    <span class="text-sm text-gray-400 line-through item-old-price">₹{{ item.product_variant.price|multiply:item.quantity|floatformat:2 }}</span>
+                    <p class="text-sm text-red-600 item-discount">
+                      {% if item.product_variant.discount_type == 'percentage' %}
+                        {{item.product_variant.discount_value}}% OFF
+                      {% else %}
+                        ₹{{item.product_variant.discount_value|multiply:item.quantity|floatformat:2}} OFF
+                      {% endif %}
+                    </p>
                   {% endif %}
                 </div>
               </div>
@@ -89,7 +100,7 @@
           </div>
           <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
             <span>Total:</span>
-            <span>₹<span id="total">{{ total }}</span></span>
+            <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
           </div>
         </div>
         <button class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
@@ -148,19 +159,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: data.message,
                 showConfirmButton: false,
                 timer: 2000
-              })
+              });
+
+              // Update item prices
+              if (action === 'update') {
+                const itemContainer = document.querySelector(`[data-item-id="${variantId}"]`);
+                const priceElement = itemContainer.querySelector('.item-price');
+                const oldPriceElement = itemContainer.querySelector('.item-old-price');
+                const discountElement = itemContainer.querySelector('.item-discount');
+
+                if (priceElement) {
+                  const totalPrice = (parseFloat(data.item_price) * parseInt(quantity)).toFixed(2);
+                  priceElement.textContent = isNaN(totalPrice) ? '₹0.00' : `₹${totalPrice}`;
+                }
+                if (oldPriceElement) {
+                  const totalOldPrice = (parseFloat(data.item_old_price) * parseInt(quantity)).toFixed(2);
+                  oldPriceElement.textContent = isNaN(totalOldPrice) ? '₹0.00' : `₹${totalOldPrice}`;
+                }
+                if (discountElement) {
+                  if (data.item_discount_type === 'fixed') {
+                    const totalDiscount = (parseFloat(data.item_discount_value) * parseInt(quantity)).toFixed(2);
+                    discountElement.textContent = isNaN(totalDiscount) ? '₹0.00 OFF' : `₹${totalDiscount} OFF`;
+                  } else {
+                    discountElement.textContent = `${data.item_discount_value}% OFF`;
+                  }
+                }
+              }
             } else {
               Swal.fire({
                 icon: 'error',
                 title: data.message,
                 showConfirmButton: false,
                 timer: 2000
-              })
+              });
             }
             // Update cart totals
-            document.getElementById('total').textContent = data.total;
-            document.getElementById('total-mrp').textContent = data.total_mrp;
-            document.getElementById('total-discount').textContent = data.total_discount;
+            document.getElementById('total').textContent = parseFloat(data.total).toFixed(2);
+            document.getElementById('total-mrp').textContent = parseFloat(data.total_mrp).toFixed(2);
+            document.getElementById('total-discount').textContent = parseFloat(data.total_discount).toFixed(2);
             
             // If cart is empty, show empty cart message
             if (data.item_count === 0) {
