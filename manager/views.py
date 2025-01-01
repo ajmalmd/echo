@@ -335,6 +335,15 @@ def add_variant(request, product_id):
         messages.error(request, "Price value must be a number.")
         return redirect("product_view", product_id)
     
+    if discount_type == "fixed":
+        if float(discount_value)>float(price):
+            messages.error(request, "Discount value must be less than the price.")
+            return redirect("product_view", product_id)
+    if discount_type == "percentage":
+        if float(discount_value)>100:
+            messages.error(request, "Discount value must be less than 100.")
+            return redirect("product_view", product_id)
+    
     
     if discount_type == "none" or not discount_type:
         discount_type = None
@@ -419,6 +428,15 @@ def edit_variant(request, variant_id):
         except ValueError:
             messages.error(request, "Price value must be a number.")
             return redirect("edit_variant", variant_id=variant_id)
+        
+        if discount_type == "fixed":
+            if float(discount_value)>float(price):
+                messages.error(request, "Discount value must be less than the price.")
+                return redirect("product_view", product_id)
+        if discount_type == "percentage":
+            if float(discount_value)>100:
+                messages.error(request, "Discount value must be less than 100.")
+                return redirect("product_view", product_id)
 
         if discount_type == "none":
             discount_type = None

@@ -15,8 +15,13 @@ urlpatterns = [
     
     #profile
     path("addresses/", views.addresses, name='addresses'),
+    path("save-address/", views.save_address, name='save_address'),
+    path("delete-address/", views.delete_address, name='delete_address'),
+    path("set-default-address/", views.set_default_address, name='set_default_address'),
+    path("delete_address/", views.delete_address, name='delete_address'),
     
     path("cart/", views.cart, name='cart'),
     path('add-to-cart/', views.add_to_cart, name='add_to_cart'),
     path("checkout/address/", views.select_address, name='checkout_address'),
+    path("checkout/payment/", views.checkout_payment, name='checkout_payment'),
 ]

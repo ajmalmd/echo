@@ -1,0 +1,32 @@
+{% extends 'store/base.html' %}
+{% block content %}
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="md:col-span-3"></div>
+    <div class="w-full bg-white border rounded-lg p-6 h-fit sticky top-4">
+      <h2 class="text-xl font-semibold mb-4">Price Details</h2>
+      <div class="space-y-2">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Total MRP:</span>
+          <span>₹<span id="total-mrp">{{ total_mrp|floatformat:2 }}</span></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Discount on MRP</span>
+          <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Shipping:</span>
+          <span>FREE</span>
+        </div>
+        <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
+          <span>Total:</span>
+          <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
+        </div>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="checkout_address_id" id="checkout_address_id" hidden />
+        <button type="submit" id="continue-to-payment" class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300" disabled>PLACE ORDER</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

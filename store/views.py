@@ -14,6 +14,7 @@ from django.db.models import Avg, Count, F, Q, Value
 from django.db.models.functions import Concat
 import json
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 
 def is_customer(user):
@@ -373,7 +374,6 @@ def reset_password(request):
     return render(request, "store/reset_password.html")
 
 
-# @user_passes_test(is_customer)
 def home(request):
     new_arrivals = get_new_arrivals(6)
 
@@ -592,6 +592,28 @@ def cart(request):
         "product_variant", "product_variant__product"
     ).all()
 
+    # cart validation to place order
+    if request.method == "POST":
+        is_place_order = request.POST.get("select_address")
+        if is_place_order:
+            if cart_items.count() == 0:
+                messages.error(request, "Your cart is empty.")
+                return redirect("cart")
+            for item in cart_items:
+                if (
+                    item.product_variant.stock < item.quantity
+                    or item.quantity > 3
+                    or not item.product_variant.is_active
+                    or not item.product_variant.product.is_active
+                    or not item.product_variant.product.brand.is_active
+                ):
+                    messages.error(
+                        request, "Delete not available items from cart to place order"
+                    )
+                    return redirect("cart")
+            return redirect("checkout_address")
+
+    # cart actions
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         if request.method == "POST":
             action = request.POST.get("action")
@@ -706,125 +728,175 @@ def add_to_cart(request):
     return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
 
 
-# select address to order
+# select address to checkout order
 @login_required(login_url="login")
 @user_passes_test(is_customer)
 def select_address(request):
     default_address = request.user.addresses.filter(is_default=True).first()
     saved_addresses = request.user.addresses.filter(is_default=False)
     cart = Cart.objects.get(user=request.user)
+    cart_items = cart.items.select_related(
+        "product_variant", "product_variant__product"
+    ).all()
+    if cart_items.count() == 0:
+        messages.error(request, "Your cart is empty.")
+        return redirect("cart")
+    for item in cart_items:
+        if (
+            item.product_variant.stock < item.quantity
+            or item.quantity > 3
+            or not item.product_variant.is_active
+            or not item.product_variant.product.is_active
+            or not item.product_variant.product.brand.is_active
+        ):
+            messages.error(
+                request, "Delete not available items from cart to place order"
+            )
+            return redirect("cart")
     total_mrp = round(cart.total_price(), 2)
     total_discounted = round(cart.total_discounted_price(), 2)
+    total_discount = total_mrp - total_discounted
 
     if request.method == "POST":
+        checkout_address_id = request.POST.get("checkout_address_id")
+        request.session["selected_address_id"] = checkout_address_id
+        return redirect("checkout_payment")
 
-        # make default address
-        address_id = request.POST.get("set_default")
-        if address_id:
-            try:
-                address = request.user.addresses.get(id=address_id)
-                # Reset all addresses to non-default
-                request.user.addresses.update(is_default=False)
-                # Set the selected address as default
-                address.is_default = True
-                address.save()
-                messages.success(request, "Default address updated successfully.")
-            except Address.DoesNotExist:
-                messages.error(request, "Address not found.")
-            return redirect("checkout_address")
+    context = {
+        "default_address": default_address,
+        "saved_addresses": saved_addresses,
+        "total_mrp": total_mrp,
+        "total_discount": total_discount,
+        "total": total_discounted,
+    }
+    return render(request, "store/select_address.html", context)
 
-        # delete address
-        address_id = request.POST.get("delete")
-        if address_id:
-            try:
-                address = request.user.addresses.get(id=address_id)
-                address.delete()
-                messages.success(request, "Address deleted successfully.")
-            except Address.DoesNotExist:
-                messages.error(request, "Address not found.")
-            return redirect("checkout_address")
 
-        name = request.POST.get("name")
-        phone = request.POST.get("phone")
-        address_line_1 = request.POST.get("address_line_1")
-        address_line_2 = request.POST.get("address_line_2")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        postal_code = request.POST.get("postal_code")
-        country = request.POST.get("country")
-        is_default = request.POST.get("is_default")
+@require_POST
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def delete_address(request):
+    data = json.loads(request.body)  # Parse JSON data
+    address_id = data.get("address_id")
+    try:
+        address = Address.objects.get(id=address_id, user=request.user)
+        address.delete()
+        return JsonResponse({"success": True})
+    except Address.DoesNotExist:
+        return JsonResponse({"success": False}, status=400)
 
-        # validations
-        if not is_valid_name(name):
-            messages.error(request, "Invalid name. Use only alphabets and spaces.")
-            return redirect("checkout_address")
 
-        if not is_valid_phone(phone):
-            messages.error(request, "Invalid phone number.")
-            return redirect("checkout_address")
-
-        if not is_valid_name(city):
-            messages.error(request, "Invalid city name.")
-            return redirect("checkout_address")
-
-        if not is_valid_name(state):
-            messages.error(request, "Invalid state name.")
-            return redirect("checkout_address")
-
-        if not is_valid_postalcode(postal_code):
-            messages.error(request, "Invalid postal code.")
-            return redirect("checkout_address")
-
-        if not is_valid_name(country):
-            messages.error(request, "Invalid country name.")
-            return redirect("checkout_address")
-
-        # edit address
-        address_id = request.POST.get("edit")
-        if address_id:
-            try:
-                address = request.user.addresses.get(id=address_id)
-                address.name = name
-                address.contact = phone
-                address.address_line_1 = address_line_1
-                address.address_line_2 = address_line_2
-                address.city = city
-                address.state = state
-                address.postal_code = postal_code
-                address.country = country
-                address.save()
-                messages.success(request, "Address updated successfully.")
-            except Address.DoesNotExist:
-                messages.error(request, "Address not found.")
-            return redirect("checkout_address")
-
-        # add new address
-        if is_default == "on":
-            is_default = True
-        else:
-            is_default = False
-
-        new_address = Address(
-            user=request.user,
-            name=name,
-            contact=phone,
-            address_line_1=address_line_1,
-            address_line_2=address_line_2,
-            city=city,
-            state=state,
-            postal_code=postal_code,
-            is_default=is_default,
+@require_POST
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def set_default_address(request):
+    data = json.loads(request.body)  # Parse JSON data
+    address_id = data.get("address_id")
+    try:
+        address = Address.objects.get(id=address_id, user=request.user)
+        Address.objects.filter(user=request.user, is_default=True).update(
+            is_default=False
         )
-        new_address.save()
-        messages.success(request, "Address added successfully.")
-        return redirect("checkout_address")
-    return render(
-        request,
-        "store/select_address.html",
-        {
-            "default_address": default_address,
-            "saved_addresses": saved_addresses,
-            "total_mrp": total_mrp,
-            "total_discount": total_mrp - total_discounted,
-        },
-    )
+        address.is_default = True
+        address.save()
+        return JsonResponse({"success": True})
+    except Address.DoesNotExist:
+        return JsonResponse({"success": False}, status=400)
+
+
+@require_POST
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def save_address(request):
+    address_id = request.POST.get("edit")
+    if address_id:
+        address = get_object_or_404(Address, id=address_id, user=request.user)
+    else:
+        address = Address(user=request.user)
+
+    address.name = request.POST.get("name")
+    address.contact = request.POST.get("phone")
+    address.address_line_1 = request.POST.get("address_line_1")
+    address.address_line_2 = request.POST.get("address_line_2")
+    address.city = request.POST.get("city")
+    address.state = request.POST.get("state")
+    address.postal_code = request.POST.get("postal_code")
+    address.country = request.POST.get("country")
+    address.is_default = request.POST.get("is_default") == "on"
+
+    if not is_valid_name(address.name):
+        return JsonResponse({"success": False, "message": "Invalid name."}, status=400)
+    if not is_valid_phone(address.contact):
+        return JsonResponse(
+            {"success": False, "message": "Invalid phone number."}, status=400
+        )
+    if not is_valid_name(address.city):
+        return JsonResponse(
+            {"success": False, "message": "Invalid city name."}, status=400
+        )
+    if not is_valid_name(address.state):
+        return JsonResponse(
+            {"success": False, "message": "Invalid state name."}, status=400
+        )
+    if not is_valid_postalcode(address.postal_code):
+        return JsonResponse(
+            {"success": False, "message": "Invalid postal code."}, status=400
+        )
+    if not is_valid_name(address.country):
+        return JsonResponse(
+            {"success": False, "message": "Invalid country name."}, status=400
+        )
+
+    address.save()
+
+    if address.is_default:
+        Address.objects.filter(user=request.user).exclude(id=address.id).update(
+            is_default=False
+        )
+
+    return JsonResponse({"success": True})
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def checkout_payment(request):
+    selected_address_id = request.session.get("selected_address_id")
+    if not selected_address_id:
+        messages.error(
+            request, "Please select an address before proceeding to payment."
+        )
+        return redirect("select_address")
+
+    address = get_object_or_404(Address, id=selected_address_id, user=request.user)
+    cart = Cart.objects.get(user=request.user)
+    cart_items = cart.items.select_related(
+        "product_variant", "product_variant__product"
+    ).all()
+    if cart_items.count() == 0:
+        messages.error(request, "Your cart is empty.")
+        return redirect("cart")
+    for item in cart_items:
+        if (
+            item.product_variant.stock < item.quantity
+            or item.quantity > 3
+            or not item.product_variant.is_active
+            or not item.product_variant.product.is_active
+            or not item.product_variant.product.brand.is_active
+        ):
+            messages.error(
+                request, "Delete not available items from cart to place order"
+            )
+            return redirect("cart")
+    total_mrp = round(cart.total_price(), 2)
+    total_discounted = round(cart.total_discounted_price(), 2)
+    total_discount = total_mrp - total_discounted
+
+    # Add your payment processing logic here
+
+    context = {
+        "address": address,
+        "total_mrp": total_mrp,
+        "total_discount": total_discount,
+        "total": total_discounted,
+    }
+    return render(request, "store/checkout_payment.html", context)

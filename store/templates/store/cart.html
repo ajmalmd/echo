@@ -103,9 +103,13 @@
             <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
           </div>
         </div>
-        <button class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
-          PLACE ORDER
-        </button>
+        <form action="" method="post">
+          {% csrf_token %}
+          <input type="text" name="select_address" value="True" hidden />
+          <button type="submit" class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
+            PLACE ORDER
+          </button>
+        </form>
       </div>
     </div>
   </div>
