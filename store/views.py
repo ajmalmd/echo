@@ -15,6 +15,7 @@ from django.db.models.functions import Concat
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.db import transaction
 
 
 def is_customer(user):
@@ -872,9 +873,12 @@ def checkout_payment(request):
     cart_items = cart.items.select_related(
         "product_variant", "product_variant__product"
     ).all()
+
     if cart_items.count() == 0:
+        del request.session["selected_address_id"]
         messages.error(request, "Your cart is empty.")
         return redirect("cart")
+
     for item in cart_items:
         if (
             item.product_variant.stock < item.quantity
@@ -883,20 +887,70 @@ def checkout_payment(request):
             or not item.product_variant.product.is_active
             or not item.product_variant.product.brand.is_active
         ):
+            del request.session["selected_address_id"]
             messages.error(
                 request, "Delete not available items from cart to place order"
             )
             return redirect("cart")
+
     total_mrp = round(cart.total_price(), 2)
     total_discounted = round(cart.total_discounted_price(), 2)
     total_discount = total_mrp - total_discounted
 
-    # Add your payment processing logic here
+    payment_methods = Order.PAYMENT_METHOD_CHOICES
+
+    if request.method == "POST":
+        payment_method = request.POST.get("payment_method")
+        if payment_method not in dict(payment_methods):
+            messages.error(request, "Invalid payment method selected.")
+            return redirect("checkout_payment")
+
+        try:
+            with transaction.atomic():
+                # Create the order
+                order = Order.objects.create(
+                    user=request.user,
+                    address=address,
+                    total_price=total_mrp,
+                    total_discount=total_discount,
+                    total_price_after_discount=total_discounted,
+                    order_payment=payment_method,
+                )
+
+                # Create order items
+                for cart_item in cart_items:
+                    variant = cart_item.product_variant
+                    discount = variant.price - variant.discounted_price()
+                    discounted_price = variant.discounted_price()
+                    OrderItem.objects.create(
+                        order=order,
+                        product_variant=cart_item.product_variant,
+                        quantity=cart_item.quantity,
+                        price=variant.price,
+                        discount=discount,
+                        price_after_discount=discounted_price,
+                    )
+                    # Update stock
+                    cart_item.product_variant.stock -= cart_item.quantity
+                    cart_item.product_variant.save()
+
+                # Clear the cart
+                cart.items.all().delete()
+
+            messages.success(request, "Order placed successfully!")
+            del request.session["selected_address_id"]
+            # return redirect("order_confirmation", order_id=order.id)
+            return redirect("home")
+        except Exception as e:
+            messages.error(
+                request, f"An error occurred while placing your order: {str(e)}"
+            )
+            return redirect("checkout_payment")
 
     context = {
-        "address": address,
         "total_mrp": total_mrp,
         "total_discount": total_discount,
         "total": total_discounted,
+        "payment_methods": payment_methods,
     }
     return render(request, "store/checkout_payment.html", context)

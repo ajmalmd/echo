@@ -1,7 +1,22 @@
 {% extends 'store/base.html' %}
 {% block content %}
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div class="md:col-span-3"></div>
+    <div class="md:col-span-3">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-semibold">Select Payment Method</h2>
+        <form method="POST" id="payment-form">
+          {% csrf_token %}
+          <div class="space-y-4 mt-4">
+            {% for value, label in payment_methods %}
+              <div class="flex items-center">
+                <input type="radio" id="{{ value }}" name="payment_method" value="{{ value }}" class="mr-2" />
+                <label for="{{ value }}" class="text-gray-700">{{ label }}</label>
+              </div>
+            {% endfor %}
+          </div>
+        </form>
+      </div>
+    </div>
     <div class="w-full bg-white border rounded-lg p-6 h-fit sticky top-4">
       <h2 class="text-xl font-semibold mb-4">Price Details</h2>
       <div class="space-y-2">
@@ -22,11 +37,28 @@
           <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
         </div>
       </div>
-      <form method="POST">
-        {% csrf_token %}
-        <input type="text" name="checkout_address_id" id="checkout_address_id" hidden />
-        <button type="submit" id="continue-to-payment" class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300" disabled>PLACE ORDER</button>
-      </form>
+      <button type="submit" form="payment-form" id="place-order" class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>PLACE ORDER</button>
     </div>
   </div>
+{% endblock %}
+{% block script %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('payment-form')
+      const placeOrderButton = document.getElementById('place-order')
+      const paymentMethods = form.querySelectorAll('input[name="payment_method"]')
+    
+      function updateButtonState() {
+        placeOrderButton.disabled = ![...paymentMethods].some((radio) => radio.checked)
+        placeOrderButton.classList.toggle('opacity-50', placeOrderButton.disabled)
+        placeOrderButton.classList.toggle('cursor-not-allowed', placeOrderButton.disabled)
+      }
+    
+      paymentMethods.forEach((radio) => {
+        radio.addEventListener('change', updateButtonState)
+      })
+    
+      updateButtonState()
+    })
+  </script>
 {% endblock %}

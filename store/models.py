@@ -1,7 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
+
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -18,10 +23,11 @@ class UserManager(BaseUserManager):
         """
         Creates and returns a superuser with an email and password.
         """
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
 
         return self.create_user(email, password, **extra_fields)
+
 
 # Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
@@ -34,22 +40,24 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email
-    
-    
+
+
 class OTP(models.Model):
     email = models.EmailField(unique=True)
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(default=now)
     resend_count = models.IntegerField(default=0)
-    
+
 
 class Review(models.Model):
-    product = models.ForeignKey('manager.Product', on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(
+        "manager.Product", on_delete=models.CASCADE, related_name="reviews"
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     rating = models.IntegerField()
     review_text = models.TextField()
@@ -57,8 +65,8 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.user.fullname} - {self.product.name}"
-  
-    
+
+
 # Cart Model
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="cart")
@@ -76,25 +84,34 @@ class Cart(models.Model):
         return f"Cart for {self.user.email}"
 
 
-
 # CartItem Model
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     product_variant = models.ForeignKey(
-        'manager.ProductVariant', on_delete=models.CASCADE, related_name="cart_items"
+        "manager.ProductVariant", on_delete=models.CASCADE, related_name="cart_items"
     )
     quantity = models.PositiveIntegerField(default=1)
 
     def total_price(self):
         """Calculates the total price for this cart item."""
-        if not self.product_variant.is_active or not self.product_variant.product.is_active or not self.product_variant.product.brand.is_active or self.product_variant.stock <=0:
+        if (
+            not self.product_variant.is_active
+            or not self.product_variant.product.is_active
+            or not self.product_variant.product.brand.is_active
+            or self.product_variant.stock <= 0
+        ):
             return 0
-            
+
         return self.product_variant.price * self.quantity
 
     def discounted_price(self):
         """Calculates the total discounted price for this cart item."""
-        if not self.product_variant.is_active or not self.product_variant.product.is_active or not self.product_variant.product.brand.is_active or self.product_variant.stock <=0:
+        if (
+            not self.product_variant.is_active
+            or not self.product_variant.product.is_active
+            or not self.product_variant.product.brand.is_active
+            or self.product_variant.stock <= 0
+        ):
             return 0
         return self.product_variant.discounted_price() * self.quantity
 
@@ -107,7 +124,6 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product_variant.name} in {self.cart.user.email}'s cart"
-
 
 
 # Address Model
@@ -132,22 +148,35 @@ class Address(models.Model):
     def save(self, *args, **kwargs):
         # Ensure only one default address per user
         if self.is_default:
-            Address.objects.filter(
-                user=self.user, is_default=True
-            ).update(is_default=False)
+            Address.objects.filter(user=self.user, is_default=True).update(
+                is_default=False
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.address_type.capitalize()} Address for {self.user.email}"
 
 
-# Order Model
 class Order(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ("cod", "Cash on Delivery"),
+        # ("razorpay", "Razorpay"),
+        # ("upi", "UPI"),
+        # ("card", "Card Payment"),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     address = models.ForeignKey(
         Address, on_delete=models.SET_NULL, null=True, related_name="order_address"
     )
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_price_after_discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    order_payment = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def overall_status(self):
@@ -167,7 +196,6 @@ class Order(models.Model):
         return f"Order #{self.id} by {self.user.email}"
 
 
-
 # OrderItem Model
 class OrderItem(models.Model):
     ORDER_ITEM_STATUS_CHOICES = [
@@ -181,14 +209,42 @@ class OrderItem(models.Model):
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product_variant = models.ForeignKey(
-        'manager.ProductVariant', on_delete=models.SET_NULL, null=True, related_name="order_items"
+        "manager.ProductVariant",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="order_items",
     )
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price_after_discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
     status = models.CharField(
         max_length=20, choices=ORDER_ITEM_STATUS_CHOICES, default="pending"
     )
 
-    def __str__(self):
-        return f"{self.quantity} x {self.product_variant.name} in Order #{self.order.id}"
+    def sub_total(self):
+        """
+        Calculate the subtotal after applying discounts.
+        """
+        if self.discount and self.discount < self.price:
+            return (self.price - self.discount) * self.quantity
+        return self.price * self.quantity
 
+    def total_price(self):
+        """
+        Calculate the total price without discounts.
+        """
+        return self.price * self.quantity
+
+    def total_discount(self):
+        """
+        Calculate the total discount for the order item.
+        """
+        return self.discount * self.quantity
+
+    def __str__(self):
+        return (
+            f"{self.quantity} x {self.product_variant.name} in Order #{self.order.id}"
+        )
