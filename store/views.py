@@ -8,7 +8,7 @@ from .services import generate_otp, send_otp_email, get_new_arrivals
 from .validators import *
 from django.contrib.auth.decorators import user_passes_test
 from django.utils.timezone import now, timedelta
-from datetime import datetime
+from datetime import datetime, date
 from django.views.decorators.cache import never_cache
 from django.db.models import Avg, Count, F, Q, Value
 from django.db.models.functions import Concat
@@ -471,6 +471,61 @@ def view_variant(request, variant_id):
 
 @login_required(login_url="login")
 @user_passes_test(is_customer)
+def profile(request):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if request.method == "POST":
+            user = request.user
+            errors = {}
+
+            # Validate fullname
+            fullname = request.POST.get("fullname", "").strip()
+            if not fullname:
+                errors["fullname"] = "Full name is required."
+            elif len(fullname) > 255:
+                errors["fullname"] = "Full name must be 255 characters or less."
+
+            # Validate mobile number
+            mobile_number = request.POST.get("mobile_number", "").strip()
+            if mobile_number and not mobile_number.isdigit():
+                errors["mobile_number"] = "Mobile number must contain only digits."
+            elif len(mobile_number) > 15:
+                errors["mobile_number"] = "Mobile number must be 15 digits or less."
+
+            # Validate gender
+            gender = request.POST.get("gender", "").strip()
+            if gender and gender not in dict(user.GENDER_CHOICES):
+                errors["gender"] = "Invalid gender selection."
+
+            # Validate date of birth
+            dob = request.POST.get("dob", "").strip()
+            if dob:
+                try:
+                    dob_date = datetime.strptime(dob, "%Y-%m-%d").date()
+                    if dob_date > date.today():
+                        errors["dob"] = "Date of birth cannot be in the future."
+                    elif dob_date.year < 1900:
+                        errors["dob"] = "Invalid date of birth."
+                except ValueError:
+                    errors["dob"] = "Invalid date format. Use YYYY-MM-DD."
+
+            if errors:
+                return JsonResponse({"success": False, "errors": errors})
+
+            # If no errors, update user profile
+            user.fullname = fullname
+            user.mobile_number = mobile_number or None
+            user.gender = gender or None
+            user.dob = dob_date if dob else None
+            user.save()
+            messages.success(request, "Profile updated successfully.")
+
+            return JsonResponse({"success": True})
+
+    return render(request, "store/profile.html")
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
 def addresses(request):
 
     default_address = request.user.addresses.filter(is_default=True).first()
@@ -727,7 +782,6 @@ def add_to_cart(request):
         )
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
-
 
 # select address to checkout order
 @login_required(login_url="login")

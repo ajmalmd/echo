@@ -31,8 +31,18 @@ class UserManager(BaseUserManager):
 
 # Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
+    GENDER_CHOICES = [("male", "Male"), ("female", "Female"), ("other", "Other")]
     fullname = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
+    mobile_number = models.CharField(max_length=15, blank=True, null=True, default=None)
+    gender = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        choices=GENDER_CHOICES,
+        default=None
+    )
+    dob = models.DateField(blank=True, null=True, default=None)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(auto_now_add=True)

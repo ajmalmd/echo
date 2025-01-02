@@ -14,6 +14,7 @@ urlpatterns = [
     path('variant/<int:variant_id>/', views.view_variant, name='view_variant'),
     
     #profile
+    path("profile/", views.profile, name='profile'),
     path("addresses/", views.addresses, name='addresses'),
     path("save-address/", views.save_address, name='save_address'),
     path("delete-address/", views.delete_address, name='delete_address'),

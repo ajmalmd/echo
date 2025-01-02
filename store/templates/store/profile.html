@@ -1,0 +1,217 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <!-- Sidebar -->
+      <div class="md:col-span-1">
+        {% include 'store/profile_partials.html' with active_tab='profile' %}
+      </div>
+
+      <!-- Main Content -->
+      <div class="md:col-span-3">
+        <div class="bg-white shadow rounded-lg p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Profile Details</h2>
+            <button id="editButton" class="px-4 py-2 text-white rounded bg-black hover:bg-gray-800 transition duration-150 ease-in-out">
+              Edit
+            </button>
+          </div>
+          <form id="profileForm" method="POST" action="{% url 'profile' %}">
+            {% csrf_token %}
+            <div class="space-y-4">
+              <div class="flex items-center">
+                <label for="fullname" class="w-1/3 text-sm font-medium text-gray-700">Full Name</label>
+                <div class="w-2/3">
+                  <span id="fullnameDisplay" class="block">{{ user.fullname }}</span>
+                  <input type="text" name="fullname" id="fullname" value="{{ user.fullname }}" class="w-full bg-gray-100 rounded-md py-2 px-3 hidden" required maxlength="255">
+                  <span class="text-red-500 text-xs hidden" id="fullnameError"></span>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <label for="email" class="w-1/3 text-sm font-medium text-gray-700">Email</label>
+                <div class="w-2/3">
+                  <span id="emailDisplay" class="block">{{ user.email }}</span>
+                  <input type="email" name="email" id="email" value="{{ user.email }}" class="w-full bg-gray-100 rounded-md py-2 px-3 hidden" readonly>
+                  <span class="text-red-500 text-xs hidden" id="emailError"></span>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <label for="mobile_number" class="w-1/3 text-sm font-medium text-gray-700">Mobile Number</label>
+                <div class="w-2/3">
+                  <span id="mobileNumberDisplay" class="block">{% if user.mobile_number %}{{ user.mobile_number }}{% else %}not added{% endif %}</span>
+                  <input type="tel" name="mobile_number" id="mobile_number" value="{% if user.mobile_number %}{{ user.mobile_number }}{% endif %}" class="w-full bg-gray-100 rounded-md py-2 px-3 hidden" maxlength="10">
+                  <span class="text-red-500 text-xs hidden" id="mobileNumberError"></span>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <label for="gender" class="w-1/3 text-sm font-medium text-gray-700">Gender</label>
+                <div class="w-2/3">
+                  <span id="genderDisplay" class="block">{{ user.get_gender_display }}</span>
+                  <select name="gender" id="gender" class="w-full bg-gray-100 rounded-md py-2 px-3 hidden">
+                    <option value="">Select Gender</option>
+                    {% for value, label in user.GENDER_CHOICES %}
+                      <option value="{{ value }}" {% if user.gender == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <span class="text-red-500 text-xs hidden" id="genderError"></span>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <label for="dob" class="w-1/3 text-sm font-medium text-gray-700">Date of Birth</label>
+                <div class="w-2/3">
+                  <span id="dobDisplay" class="block">{{ user.dob|date:"F d, Y" }}</span>
+                  <input type="date" name="dob" id="dob" value="{{ user.dob|date:'Y-m-d' }}" class="w-full bg-gray-100 rounded-md py-2 px-3 hidden">
+                  <span class="text-red-500 text-xs hidden" id="dobError"></span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editButton = document.getElementById('editButton');
+        const profileForm = document.getElementById('profileForm');
+        const inputFields = profileForm.querySelectorAll('input, select');
+        const displaySpans = profileForm.querySelectorAll('span[id$="Display"]');
+      
+        let isEditing = false;
+      
+        editButton.addEventListener('click', function() {
+          isEditing = !isEditing;
+          
+          if (isEditing) {
+            editButton.textContent = 'Save';
+            
+            displaySpans.forEach(span => span.classList.add('hidden'));
+            inputFields.forEach(field => {
+              field.classList.remove('hidden');
+              field.style.opacity = '0';
+              setTimeout(() => {
+                field.style.opacity = '1';
+              }, 50);
+            });
+          } else {
+            if (validateForm()) {
+              submitForm();
+            }
+          }
+        });
+      
+        function validateForm() {
+          let isValid = true;
+          const errorSpans = profileForm.querySelectorAll('span[id$="Error"]');
+          errorSpans.forEach(span => span.classList.add('hidden'));
+      
+          // Validate fullname
+          const fullname = profileForm.fullname.value.trim();
+          if (!fullname) {
+            showError('fullname', 'Full name is required.');
+            isValid = false;
+          } else if (fullname.length > 255) {
+            showError('fullname', 'Full name must be 255 characters or less.');
+            isValid = false;
+          }
+
+          // Validate mobile number
+          const mobileNumber = profileForm.mobile_number.value.trim();
+          if (mobileNumber && !/^\d+$/.test(mobileNumber)) {
+            showError('mobileNumber', 'Mobile number must contain only digits.');
+            isValid = false;
+          } else if (mobileNumber.length > 15) {
+            showError('mobileNumber', 'Mobile number must be 15 digits or less.');
+            isValid = false;
+          }
+      
+          // Validate date of birth
+          const dob = profileForm.dob.value.trim();
+          if (dob) {
+            const dobDate = new Date(dob);
+            const today = new Date();
+            if (isNaN(dobDate.getTime())) {
+              showError('dob', 'Invalid date format.');
+              isValid = false;
+            } else if (dobDate > today) {
+              showError('dob', 'Date of birth cannot be in the future.');
+              isValid = false;
+            } else if (dobDate.getFullYear() < 1900) {
+              showError('dob', 'Invalid date of birth.');
+              isValid = false;
+            }
+          }
+      
+          return isValid;
+        }
+      
+        function showError(fieldName, message) {
+          const errorSpan = document.getElementById(`${fieldName}Error`);
+          errorSpan.textContent = message;
+          errorSpan.classList.remove('hidden');
+        }
+      
+        function submitForm() {
+          const formData = new FormData(profileForm);
+          
+          fetch(profileForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              updateDisplayValues();
+              switchToDisplayMode();
+              location.reload();
+            } else {
+              showServerErrors(data.errors);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+        }
+      
+        function showServerErrors(errors) {
+          for (const [field, message] of Object.entries(errors)) {
+            showError(field, message);
+          }
+        }
+      
+        function updateDisplayValues() {
+          inputFields.forEach(field => {
+            const displaySpan = document.getElementById(`${field.id}Display`);
+            if (displaySpan) {
+              if (field.tagName === 'SELECT') {
+                displaySpan.textContent = field.options[field.selectedIndex].text;
+              } else if (field.type === 'date') {
+                const date = new Date(field.value);
+                displaySpan.textContent = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+              } else {
+                displaySpan.textContent = field.value || 'not added';
+              }
+            }
+          });
+        }
+      
+        function switchToDisplayMode() {
+          isEditing = false;
+          editButton.textContent = 'Edit';
+          
+          inputFields.forEach(field => field.classList.add('hidden'));
+          displaySpans.forEach(span => span.classList.remove('hidden'));
+        }
+      });      
+  </script>
+{% endblock %}
+
