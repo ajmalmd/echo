@@ -734,7 +734,7 @@ def add_to_cart(request):
 def select_address(request):
     default_address = request.user.addresses.filter(is_default=True).first()
     saved_addresses = request.user.addresses.filter(is_default=False)
-    cart = Cart.objects.get(user=request.user)
+    cart, created = Cart.objects.get_or_create(user=request.user)
     cart_items = cart.items.select_related(
         "product_variant", "product_variant__product"
     ).all()
@@ -865,7 +865,7 @@ def checkout_payment(request):
         messages.error(
             request, "Please select an address before proceeding to payment."
         )
-        return redirect("select_address")
+        return redirect("checkout_address")
 
     address = get_object_or_404(Address, id=selected_address_id, user=request.user)
     cart = Cart.objects.get(user=request.user)
