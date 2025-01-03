@@ -5,11 +5,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from .utils import paginate_items
-from .models import Brand, Product, ProductVariant, ProductImage
+from .models import *
 from store.validators import *
-from store.models import User
+from store.models import *
 from django.contrib import messages
 from django.db.models import Count
+from django.http import JsonResponse
 from django.contrib.auth.decorators import user_passes_test
 from cloudinary.uploader import (
     upload as cloudinary_upload,
@@ -97,11 +98,15 @@ def brands(request):
 
     # Fetch brands, filter by search query if provided
     if search_query:
-        brands = Brand.objects.filter(name__icontains=search_query).annotate(
-            product_count=Count("products")
-        ).order_by("created_at")
+        brands = (
+            Brand.objects.filter(name__icontains=search_query)
+            .annotate(product_count=Count("products"))
+            .order_by("created_at")
+        )
     else:
-        brands = Brand.objects.annotate(product_count=Count("products")).order_by("created_at")
+        brands = Brand.objects.annotate(product_count=Count("products")).order_by(
+            "created_at"
+        )
 
     page_obj = paginate_items(request, brands, per_page=10)
 
@@ -179,11 +184,17 @@ def products(request):
 
     # Fetch products, filter by search query if provided
     if search_query:
-        products = Product.objects.filter(name__icontains=search_query).annotate(
-            variant_count=Count("variants")
-        ).order_by("-created_at")
+        products = (
+            Product.objects.filter(name__icontains=search_query)
+            .annotate(variant_count=Count("variants"))
+            .order_by("-created_at")
+        )
     else:
-        products = Product.objects.all().annotate(variant_count=Count("variants")).order_by("-created_at")
+        products = (
+            Product.objects.all()
+            .annotate(variant_count=Count("variants"))
+            .order_by("-created_at")
+        )
 
     page_obj = paginate_items(request, products, per_page=10)
     brands = Brand.objects.filter(is_active=True)
@@ -303,6 +314,7 @@ def edit_product(request, product_id):
 
     return redirect("products")
 
+
 @user_passes_test(is_staff_user)
 def add_variant(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -324,7 +336,7 @@ def add_variant(request, product_id):
     except ValueError:
         messages.error(request, "Stock value must be an integer.")
         return redirect("product_view", product_id)
-    
+
     # Price validation
     try:
         price = float(price)
@@ -334,17 +346,16 @@ def add_variant(request, product_id):
     except ValueError:
         messages.error(request, "Price value must be a number.")
         return redirect("product_view", product_id)
-    
+
     if discount_type == "fixed":
-        if float(discount_value)>float(price):
+        if float(discount_value) > float(price):
             messages.error(request, "Discount value must be less than the price.")
             return redirect("product_view", product_id)
     if discount_type == "percentage":
-        if float(discount_value)>100:
+        if float(discount_value) > 100:
             messages.error(request, "Discount value must be less than 100.")
             return redirect("product_view", product_id)
-    
-    
+
     if discount_type == "none" or not discount_type:
         discount_type = None
         discount_value = None
@@ -395,6 +406,7 @@ def add_variant(request, product_id):
 
     return redirect("product_view", product_id=product.id)
 
+
 @user_passes_test(is_staff_user)
 def edit_variant(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
@@ -418,7 +430,7 @@ def edit_variant(request, variant_id):
         except ValueError:
             messages.error(request, "Stock value must be an integer.")
             return redirect("edit_variant", variant_id=variant_id)
-        
+
         # Price validation
         try:
             price = float(price)
@@ -428,13 +440,13 @@ def edit_variant(request, variant_id):
         except ValueError:
             messages.error(request, "Price value must be a number.")
             return redirect("edit_variant", variant_id=variant_id)
-        
+
         if discount_type == "fixed":
-            if float(discount_value)>float(price):
+            if float(discount_value) > float(price):
                 messages.error(request, "Discount value must be less than the price.")
                 return redirect("product_view", product_id)
         if discount_type == "percentage":
-            if float(discount_value)>100:
+            if float(discount_value) > 100:
                 messages.error(request, "Discount value must be less than 100.")
                 return redirect("product_view", product_id)
 
@@ -512,3 +524,62 @@ def edit_variant(request, variant_id):
         "existing_images": existing_images,
     }
     return render(request, "manager/edit_variant.html", context)
+
+
+@user_passes_test(is_staff_user)
+def orders(request):
+    orders = (
+        Order.objects.prefetch_related("items")
+        .annotate(total_items=Count("items"))
+        .order_by("-created_at")
+    )
+    page_obj = paginate_items(request, orders, per_page=10)
+    context = {"page_obj": page_obj}
+    return render(request, "manager/orders.html", context)
+
+
+@user_passes_test(is_staff_user)
+def order_view(request, order_id):
+    statuses = {
+        "pending": [
+            ("confirmed", "Confirmed"),
+            ("shipped", "Shipped"),
+            ("delivered", "Delivered"),
+            ("cancelled", "Cancelled"),
+        ],
+        "confirmed": [
+            ("shipped", "Shipped"),
+            ("delivered", "Delivered"),
+            ("cancelled", "Cancelled"),
+        ],
+        "shipped": [("delivered", "Delivered"), ("cancelled", "Cancelled")],
+        "delivered": [],
+        "return_requested": [("return_approved","Returned"), ("return_rejected", "Return Rejected")],
+        "return_approved": [],
+        "return_rejected": [],
+        "cancelled": [],
+    }
+    order_items = OrderItem.objects.filter(order=order_id)
+    for item in order_items:
+        item.allowed_statuses = statuses[item.status]
+
+    if (
+        request.method == "POST"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    ):
+        item_id = request.POST.get("item_id")
+        new_status = request.POST.get("status")
+
+        try:
+            order_item = OrderItem.objects.get(id=item_id)
+            order_item.status = new_status
+            order_item.save()
+            messages.success(request, "Order item status updated successfully.")
+            return JsonResponse({"success": True})
+        except OrderItem.DoesNotExist:
+            messages.error(request, "Order item not found.")
+            return JsonResponse(
+                {"success": False, "error": "Order item not found"}, status=404
+            )
+    context = {"order_items": order_items, "order_id": order_id, "statuses": statuses}
+    return render(request, "manager/order_view.html", context)

@@ -1,0 +1,63 @@
+{% extends 'manager/base.html' %}
+
+{% block header %}
+  Orders
+{% endblock %}
+
+{% block content %}
+  <main class="p-6">
+    <div class="bg-gray-900 p-4 rounded-md">
+      <!-- Search Bar -->
+      <div class="mb-4 flex justify-between items-center">
+        <input type="text" class="bg-gray-700 text-white px-4 py-2 rounded-md" placeholder="Search" />
+      </div>
+
+      <!-- Products Table -->
+      <table class="w-full text-center text-sm bg-gray-800 rounded-md">
+        <thead class="bg-gray-700 text-gray-300">
+          <tr>
+            <th class="px-4 py-2">Order</th>
+            <th class="px-4 py-2">Total</th>
+            <th class="px-4 py-2">No.of Items</th>
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in page_obj %}
+            <tr class="border-b border-gray-700 text-white">
+              <td class="px-4 py-2">{{ order }}</td>
+              <td class="px-4 py-2">{{ order.total_price_after_discount }}</td>
+              <td class="px-4 py-2">{{ order.total_items }}</td>
+              <td class="px-4 py-2">{{ order.overall_status }}</td>
+              <td class="px-4 py-2 flex justify-center space-x-2">
+                <a href="{% url 'order_view' order.id %}" class="bg-blue-600 px-3 py-1 rounded-md text-white hover:bg-blue-500 space-x-2" title="View"><i class="fas fa-eye"></i><span>View</span></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex justify-center space-x-2">
+        {% if page_obj.has_previous %}
+          <a href="?page=1" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Previous</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">First</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Previous</span>
+        {% endif %}
+
+        <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Last</a>
+        {% else %}
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Next</span>
+          <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Last</span>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+{% endblock %}

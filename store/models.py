@@ -36,11 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     mobile_number = models.CharField(max_length=15, blank=True, null=True, default=None)
     gender = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        choices=GENDER_CHOICES,
-        default=None
+        max_length=10, blank=True, null=True, choices=GENDER_CHOICES, default=None
     )
     dob = models.DateField(blank=True, null=True, default=None)
     is_staff = models.BooleanField(default=False)
@@ -213,7 +209,9 @@ class OrderItem(models.Model):
         ("confirmed", "Confirmed"),
         ("shipped", "Shipped"),
         ("delivered", "Delivered"),
-        ("returned", "Returned"),
+        ("return_requested","Return Requested"),
+        ("return_approved", "Returned"),
+        ("return_rejected", "Return Rejected"),
         ("cancelled", "Cancelled"),
     ]
 

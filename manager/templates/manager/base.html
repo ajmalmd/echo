@@ -48,11 +48,11 @@
                 <a href="{% url 'dashboard' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'dashboard' %}
                     
-                    text-white
+                     text-white
 
                   {% else %}
                     
-                    text-gray-400
+                     text-gray-400
 
                   {% endif %} hover:text-white">
                   <span class="mr-2">🏠</span> Dashboard
@@ -62,11 +62,11 @@
                 <a href="{% url 'products' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'products' %}
                     
-                    text-white
+                     text-white
 
                   {% else %}
                     
-                    text-gray-400
+                     text-gray-400
 
                   {% endif %} hover:text-white">
                   <span class="mr-2">📦</span> Products
@@ -76,11 +76,11 @@
                 <a href="{% url 'brands' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'brands' %}
                     
-                    text-white
+                     text-white
 
                   {% else %}
                     
-                    text-gray-400
+                     text-gray-400
 
                   {% endif %} hover:text-white">
                   <span class="mr-2">🏷️</span> Brands
@@ -90,31 +90,27 @@
                 <a href="{% url 'users' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'users' %}
                     
-                    text-white
+                     text-white
 
                   {% else %}
                     
-                    text-gray-400
+                     text-gray-400
 
                   {% endif %} hover:text-white">
                   <span class="mr-2">👥</span> Users
                 </a>
               </li>
-              {% comment %}
               <li>
-                <a href="#"
+                <a href="{% url 'orders' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'orders' %}
-                    
-                    text-white
-
+                     text-white
                   {% else %}
-                    
-                    text-gray-400
-
+                     text-gray-400
                   {% endif %} hover:text-white">
                   <span class="mr-2">🛒</span> Orders
                 </a>
               </li>
+              {% comment %}
               <li>
                 <a href="#"
                   class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}

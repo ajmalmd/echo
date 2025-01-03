@@ -21,11 +21,7 @@
             <th class="px-4 py-2">Brand</th>
             <th class="px-4 py-2">Connectivity</th>
             <th class="px-4 py-2">Type</th>
-            {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
-            {% comment %} <th class="px-4 py-2">Discount</th> {% endcomment %}
-            {% comment %} <th class="px-4 py-2">Discounted Price</th> {% endcomment %}
             <th class="px-4 py-2">No. of Variants</th>
-            {% comment %} <th class="px-4 py-2">Price</th> {% endcomment %}
             <th class="px-4 py-2">Status</th>
             <th class="px-4 py-2">Action</th>
           </tr>
@@ -37,27 +33,7 @@
               <td class="px-4 py-2">{{ product.brand.name }}</td>
               <td class="px-4 py-2">{{ product.get_connectivity_display }}</td>
               <td class="px-4 py-2">{{ product.get_type_display }}</td>
-              <!-- Discount -->
-              {% comment %} <td class="px-4 py-2">
-                {% if product.is_discount_active %}
-                  {{ product.discount_value }}
-                  {{ product.get_discount_type_display }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td> {% endcomment %}
-
-              <!-- Discounted Price -->
-              {% comment %} <td class="px-4 py-2">
-                {% if product.is_discount_active %}
-                  {{ product.discounted_price|floatformat:2 }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td> {% endcomment %}
-
               <td class="px-4 py-2">{{ product.variant_count }}</td>
-              {% comment %} <td class="px-4 py-2">{{ product.price }}</td> {% endcomment %}
               <td class="px-4 py-2">
                 {% if product.is_active %}
                   <span class="text-green-400">Active</span>
