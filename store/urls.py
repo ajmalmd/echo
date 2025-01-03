@@ -16,6 +16,7 @@ urlpatterns = [
     #profile
     path("profile/", views.profile, name='profile'),
     path("addresses/", views.addresses, name='addresses'),
+    path("change-password/", views.change_password, name='change_password'),
     path("save-address/", views.save_address, name='save_address'),
     path("delete-address/", views.delete_address, name='delete_address'),
     path("set-default-address/", views.set_default_address, name='set_default_address'),

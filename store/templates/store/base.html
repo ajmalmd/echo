@@ -98,7 +98,7 @@
                           <a href="" class="block px-4 py-2">Coupon</a>
                         </li>
                         <li class="hover:bg-gray-100">
-                          <a href="" class="block px-4 py-2">Change Password</a>
+                          <a href="{% url 'change_password' %}" class="block px-4 py-2">Change Password</a>
                         </li>
                         <li class="hover:bg-gray-100">
                           <a href="{% url 'logout' %}" class="block px-4 py-2">Logout</a>
@@ -162,7 +162,7 @@
                   <a href="" class="block text-gray-700 hover:text-gray-900">Coupon</a>
                 </li>
                 <li>
-                  <a href="" class="block text-gray-700 hover:text-gray-900">Change Password</a>
+                  <a href="{% url 'change_password' %}" class="block text-gray-700 hover:text-gray-900">Change Password</a>
                 </li>
                 <li>
                   <a href="{% url 'logout' %}" class="block text-gray-700 hover:text-gray-900">Logout</a>

@@ -16,6 +16,8 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.hashers import check_password
 
 
 def is_customer(user):
@@ -1008,3 +1010,46 @@ def checkout_payment(request):
         "payment_methods": payment_methods,
     }
     return render(request, "store/checkout_payment.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def change_password(request):
+    has_password = request.user.has_usable_password()
+    context={
+        "has_password": has_password
+    }
+    if request.method == "POST":
+        if has_password:
+            old_password = request.POST.get("old_password")
+        
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if new_password and confirm_password:
+            if has_password:
+                if not check_password(old_password, request.user.password):
+                    messages.error(request, "The old password is incorrect.")
+                elif new_password == old_password:
+                    messages.error(request, "New password cannot be the same as the old password.")
+            if new_password != confirm_password:
+                messages.error(request, "New passwords do not match.")
+            elif not is_valid_password(new_password):
+                messages.error(
+                    request,
+                    "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a digit, and a special character.",
+                )
+            else:
+                # Update the password
+                request.user.set_password(new_password)
+                request.user.save()
+
+                # Keep the user logged in after password change
+                update_session_auth_hash(request, request.user)
+
+                messages.success(request, "Your password has been successfully changed.")
+                return redirect("profile")  # Redirect to a relevant page (e.g., profile)
+        else:
+            messages.error(request, "All fields are required.")
+
+    return render(request, "store/change_password.html", context)
