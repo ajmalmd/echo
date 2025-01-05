@@ -568,12 +568,27 @@ def order_view(request, order_id):
         and request.headers.get("X-Requested-With") == "XMLHttpRequest"
     ):
         item_id = request.POST.get("item_id")
+        current_status = order_items.get(id=item_id).status
         new_status = request.POST.get("status")
-
+        if statuses[current_status]:
+            if new_status not in [status[0] for status in statuses[current_status]]:
+                messages.error(request, "Invalid status.")
+                return JsonResponse(
+                    {"success": False, "error": "Invalid status"}, status=400
+                )
+        else:
+            messages.error(request, "Invalid status.")
+            return JsonResponse(
+                {"success": False, "error": "Invalid status"}, status=400
+            )
         try:
             order_item = OrderItem.objects.get(id=item_id)
             order_item.status = new_status
             order_item.save()
+            if new_status=='cancelled':
+                variant=ProductVariant.objects.get(id=order_item.product_variant)
+                variant.stock+=order_item.quantity
+                variant.save()
             messages.success(request, "Order item status updated successfully.")
             return JsonResponse({"success": True})
         except OrderItem.DoesNotExist:

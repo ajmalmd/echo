@@ -24,9 +24,8 @@
         Addresses
       </a>
 
-      <a 
-      {% comment %} href="{% url 'orders' %}" {% endcomment %}
-        class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'orders' %}
+      <a href="{% url 'my_orders' %}"
+        class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'my_orders' %}
           bg-black text-white
         {% else %}
           text-gray-700 hover:bg-gray-100

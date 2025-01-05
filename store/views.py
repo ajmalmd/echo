@@ -665,9 +665,7 @@ def cart(request):
                     or not item.product_variant.product.is_active
                     or not item.product_variant.product.brand.is_active
                 ):
-                    messages.error(
-                        request, "Delete not available items from cart to place order"
-                    )
+                    messages.error(request, "Product not available")
                     return redirect("cart")
             return redirect("checkout_address")
 
@@ -739,6 +737,17 @@ def add_to_cart(request):
         data = json.loads(request.body)  # Parse JSON data
         variant_id = data.get("variant_id")
         variant = get_object_or_404(ProductVariant, id=variant_id)
+
+        if (
+            not variant.is_active
+            or not variant.product.is_active
+            or not variant.product.brand.is_active
+        ):
+            return JsonResponse(
+                {"success": False, "message": "This product is not available"},
+                status=400,
+            )
+
         max_qty = min(variant.stock, 3)
         cart, created = Cart.objects.get_or_create(user=request.user)
         cart_item, item_created = CartItem.objects.get_or_create(
@@ -751,16 +760,15 @@ def add_to_cart(request):
                 status=400,
             )
 
-        if cart_item.quantity >= max_qty:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "message": f"You can only add up to {max_qty} units of this product",
-                },
-                status=400,
-            )
-
         if not item_created:
+            if cart_item.quantity >= max_qty:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": f"You can only add up to {max_qty} units of this product",
+                    },
+                    status=400,
+                )
             cart_item.quantity += 1
             cart_item.save()
 
@@ -785,6 +793,7 @@ def add_to_cart(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
 
+
 # select address to checkout order
 @login_required(login_url="login")
 @user_passes_test(is_customer)
@@ -806,9 +815,7 @@ def select_address(request):
             or not item.product_variant.product.is_active
             or not item.product_variant.product.brand.is_active
         ):
-            messages.error(
-                request, "Delete not available items from cart to place order"
-            )
+            messages.error(request, "Product not available")
             return redirect("cart")
     total_mrp = round(cart.total_price(), 2)
     total_discounted = round(cart.total_discounted_price(), 2)
@@ -944,9 +951,7 @@ def checkout_payment(request):
             or not item.product_variant.product.brand.is_active
         ):
             del request.session["selected_address_id"]
-            messages.error(
-                request, "Delete not available items from cart to place order"
-            )
+            messages.error(request, "Product not available")
             return redirect("cart")
 
     total_mrp = round(cart.total_price(), 2)
@@ -1016,13 +1021,11 @@ def checkout_payment(request):
 @user_passes_test(is_customer)
 def change_password(request):
     has_password = request.user.has_usable_password()
-    context={
-        "has_password": has_password
-    }
+    context = {"has_password": has_password}
     if request.method == "POST":
         if has_password:
             old_password = request.POST.get("old_password")
-        
+
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
 
@@ -1031,7 +1034,9 @@ def change_password(request):
                 if not check_password(old_password, request.user.password):
                     messages.error(request, "The old password is incorrect.")
                 elif new_password == old_password:
-                    messages.error(request, "New password cannot be the same as the old password.")
+                    messages.error(
+                        request, "New password cannot be the same as the old password."
+                    )
             if new_password != confirm_password:
                 messages.error(request, "New passwords do not match.")
             elif not is_valid_password(new_password):
@@ -1047,9 +1052,98 @@ def change_password(request):
                 # Keep the user logged in after password change
                 update_session_auth_hash(request, request.user)
 
-                messages.success(request, "Your password has been successfully changed.")
-                return redirect("profile")  # Redirect to a relevant page (e.g., profile)
+                messages.success(
+                    request, "Your password has been successfully changed."
+                )
+                return redirect(
+                    "profile"
+                )  # Redirect to a relevant page (e.g., profile)
         else:
             messages.error(request, "All fields are required.")
 
     return render(request, "store/change_password.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def orders(request):
+    orders = (
+        Order.objects.filter(user=request.user)
+        .prefetch_related("items")
+        .order_by("-created_at")
+    )
+    for order in orders:
+        order_items = order.items.all()
+        order.order_items = order_items
+
+    if (
+        request.method == "POST"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    ):
+        item_id = request.POST.get("item_id")
+        order_id = request.POST.get("order_id")
+        action = request.POST.get("action")
+
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        order_item = get_object_or_404(order.items, id=item_id)
+
+        if action == "cancel":
+            if order_item.status in ["pending", "confirmed"]:
+                order_item.status = "cancelled"
+                variant = order_item.product_variant
+                variant.stock += order_item.quantity
+                variant.save()
+                order_item.save()
+                return JsonResponse(
+                    {"success": True, "message": "Order item cancelled successfully"}
+                )
+            else:
+                return JsonResponse(
+                    {"success": False, "message": "Cannot cancel this order item"},
+                    status=400,
+                )
+
+        elif action == "return":
+            if order_item.status == "delivered":
+                # Create a return request (you might want to create a separate model for this)
+                # ReturnRequest.objects.create(order_item=order_item, status='pending')
+                order_item.status = "return_requested"
+                order_item.save()
+                return JsonResponse(
+                    {"success": True, "message": "Return request created successfully"}
+                )
+            else:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Cannot create return request for this order item",
+                    },
+                    status=400,
+                )
+
+        elif action == "cancel_return":
+            if (
+                order_item.status == "return_requested"
+                or order_item.status == "return_accepted"
+            ):
+                order_item.status = "delivered"
+                order_item.save()
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "Return request cancelled successfully",
+                    }
+                )
+            else:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Cannot cancel return request for this order item",
+                    },
+                    status=400,
+                )
+
+    context = {
+        "orders": orders,
+    }
+    return render(request, "store/orders.html", context)

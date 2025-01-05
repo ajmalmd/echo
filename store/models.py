@@ -199,7 +199,7 @@ class Order(models.Model):
         return "pending"
 
     def __str__(self):
-        return f"Order #{self.id} by {self.user.email}"
+        return f"Order #{self.id} on {self.created_at.strftime('%d-%m-%Y')}"
 
 
 # OrderItem Model

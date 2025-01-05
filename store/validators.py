@@ -18,7 +18,7 @@ def is_valid_name(name):
     Reject names consisting only of spaces.
     """
     name = name.strip()  # Remove leading and trailing spaces
-    return bool(re.fullmatch(r"[A-Za-z ]{2,75}", name))
+    return bool(re.fullmatch(r"[A-Za-z ]{2,30}", name))
 
 
 def is_valid_phone(mobile_number):
