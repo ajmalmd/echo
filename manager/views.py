@@ -257,6 +257,10 @@ def add_product(request):
             messages.error(request, str(e))
             return redirect("products")
 
+        if Product.objects.filter(name=name).exists():
+            messages.error(request, "Product with this name already exists.")
+            return redirect("products")
+
         try:
             brand = Brand.objects.get(id=brand_id)
             product = Product.objects.create(
@@ -293,6 +297,10 @@ def edit_product(request, product_id):
             validate_product_name(name)
         except ValidationError as e:
             messages.error(request, str(e))
+            return redirect("products")
+
+        if Product.objects.filter(name=name).exclude(id=product_id).exists():
+            messages.error(request, "Product with this name already exists.")
             return redirect("products")
 
         try:
@@ -333,6 +341,9 @@ def add_variant(request, product_id):
         if stock < 0:
             messages.error(request, "Stock value must be a non-negative integer.")
             return redirect("product_view", product_id)
+        if stock > 10000:
+            messages.error(request, "Max limit of stock is 10000")
+            return redirect("product_view", product_id)
     except ValueError:
         messages.error(request, "Stock value must be an integer.")
         return redirect("product_view", product_id)
@@ -342,6 +353,9 @@ def add_variant(request, product_id):
         price = float(price)
         if price < 0:
             messages.error(request, "Price value must be a non-negative integer.")
+            return redirect("product_view", product_id)
+        if price > 100000:
+            messages.error(request, "Max price should under 100000.")
             return redirect("product_view", product_id)
     except ValueError:
         messages.error(request, "Price value must be a number.")
@@ -427,6 +441,9 @@ def edit_variant(request, variant_id):
             if stock < 0:
                 messages.error(request, "Stock value must be a non-negative integer.")
                 return redirect("edit_variant", variant_id=variant_id)
+            if stock > 10000:
+                messages.error(request, "Max limit of stock is 10000.")
+                return redirect("edit_variant", variant_id=variant_id)
         except ValueError:
             messages.error(request, "Stock value must be an integer.")
             return redirect("edit_variant", variant_id=variant_id)
@@ -436,6 +453,9 @@ def edit_variant(request, variant_id):
             price = float(price)
             if price < 0:
                 messages.error(request, "Price value must be a non-negative integer.")
+                return redirect("edit_variant", variant_id=variant_id)
+            if price > 100000:
+                messages.error(request, "Max price should under 100000.")
                 return redirect("edit_variant", variant_id=variant_id)
         except ValueError:
             messages.error(request, "Price value must be a number.")
@@ -554,7 +574,10 @@ def order_view(request, order_id):
         ],
         "shipped": [("delivered", "Delivered"), ("cancelled", "Cancelled")],
         "delivered": [],
-        "return_requested": [("return_approved","Returned"), ("return_rejected", "Return Rejected")],
+        "return_requested": [
+            ("return_approved", "Returned"),
+            ("return_rejected", "Return Rejected"),
+        ],
         "return_approved": [],
         "return_rejected": [],
         "cancelled": [],
@@ -570,7 +593,7 @@ def order_view(request, order_id):
         item_id = request.POST.get("item_id")
         current_status = order_items.get(id=item_id).status
         new_status = request.POST.get("status")
-        
+
         if statuses[current_status]:
             if new_status not in [status[0] for status in statuses[current_status]]:
                 messages.error(request, "Invalid status.")
@@ -582,13 +605,13 @@ def order_view(request, order_id):
             return JsonResponse(
                 {"success": False, "error": "Invalid status"}, status=400
             )
-        
+
         try:
             order_item = OrderItem.objects.get(id=item_id)
             order_item.status = new_status
-            if new_status=='cancelled':
-                variant=ProductVariant.objects.get(id=order_item.product_variant.id)
-                variant.stock+=order_item.quantity
+            if new_status == "cancelled":
+                variant = ProductVariant.objects.get(id=order_item.product_variant.id)
+                variant.stock += order_item.quantity
                 variant.save()
             order_item.save()
             messages.success(request, "Order item status updated successfully.")

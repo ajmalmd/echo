@@ -483,8 +483,8 @@ def profile(request):
             fullname = request.POST.get("fullname", "").strip()
             if not fullname:
                 errors["fullname"] = "Full name is required."
-            elif len(fullname) > 255:
-                errors["fullname"] = "Full name must be 255 characters or less."
+            elif len(fullname) > 25:
+                errors["fullname"] = "Full name must be 25 characters or less."
 
             # Validate mobile number
             mobile_number = request.POST.get("mobile_number", "").strip()
@@ -511,7 +511,7 @@ def profile(request):
                     errors["dob"] = "Invalid date format. Use YYYY-MM-DD."
 
             if errors:
-                return JsonResponse({"success": False, "errors": errors})
+                return JsonResponse({"success": False, "errors": errors}, status=400)
 
             # If no errors, update user profile
             user.fullname = fullname
@@ -578,6 +578,14 @@ def addresses(request):
 
         if not is_valid_phone(phone):
             messages.error(request, "Invalid phone number.")
+            return redirect("addresses")
+        
+        if not is_valid_address(address_line_1):
+            messages.error(request, "Invalid Building/Street address.")
+            return redirect("addresses")
+            
+        if not is_valid_name(address_line_2):
+            messages.error(request, "Invalid Town/Locality.")
             return redirect("addresses")
 
         if not is_valid_name(city):
@@ -893,6 +901,14 @@ def save_address(request):
     if not is_valid_phone(address.contact):
         return JsonResponse(
             {"success": False, "message": "Invalid phone number."}, status=400
+        )
+    if not is_valid_address(address.address_line_1):
+        return JsonResponse(
+            {"success": False, "message": "Invalid Building/Street address."}, status=400
+        )
+    if not is_valid_name(address.address_line_2):
+        return JsonResponse(
+            {"success": False, "message": "Invalid Town/Locality."}, status=400
         )
     if not is_valid_name(address.city):
         return JsonResponse(

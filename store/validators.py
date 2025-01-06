@@ -23,7 +23,14 @@ def is_valid_name(name):
 
 def is_valid_phone(mobile_number):
     pattern = re.compile(r"^\d{10}$")
-    return bool(pattern.match(mobile_number))
+    if not pattern.match(mobile_number):
+        return False
+    
+    # Ensure the number is not all zeros
+    if mobile_number == "0000000000":
+        return False
+    
+    return True
 
 
 # password validation
@@ -56,6 +63,19 @@ def validate_product_name(name):
         raise ValidationError("Name must be between 2 and 50 characters.")
     if not name.replace(" ", "").isalnum():  # Check for alphanumeric characters
         raise ValidationError("Name can only contain alphabets, numbers, and spaces.")
+
+def is_valid_address(address):
+    if not isinstance(address, str) or not address.strip():
+        return False
+    
+    pattern = r"^[A-Za-z0-9\s.,-/#]+$"
+    if not re.match(pattern, address):
+        return False
+    
+    if len(address) < 5 or len(address) > 75:
+        return False
+    
+    return True
 
 
 def is_valid_postalcode(pcode):
