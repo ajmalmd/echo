@@ -971,7 +971,15 @@ def checkout_payment(request):
                 # Create the order
                 order = Order.objects.create(
                     user=request.user,
-                    address=address,
+                    delivery_address_name= address.name,
+                    delivery_address_contact=address.contact,
+                    delivery_address_line_1=address.address_line_1,
+                    delivery_address_line_2=address.address_line_2,
+                    delivery_city=address.city,
+                    delivery_state=address.state,
+                    delivery_country=address.country,
+                    delivery_postal_code=address.postal_code,
+                    delivery_address_type=address.address_type,
                     total_price=total_mrp,
                     total_discount=total_discount,
                     total_price_after_discount=total_discounted,
@@ -1147,3 +1155,17 @@ def orders(request):
         "orders": orders,
     }
     return render(request, "store/orders.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def view_order(request, item_id):
+    order_item = get_object_or_404(OrderItem, id=item_id)
+    variant = get_object_or_404(ProductVariant, id=order_item.product_variant.id)
+    other_items = OrderItem.objects.filter(order=order_item.order.id).exclude(
+        id=order_item.id
+    )
+
+    context = {"variant": variant, "order_item": order_item, "other_items": other_items}
+
+    return render(request, "store/view_order.html", context)

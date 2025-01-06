@@ -170,11 +170,21 @@ class Order(models.Model):
         # ("upi", "UPI"),
         # ("card", "Card Payment"),
     ]
+    ADDRESS_TYPE_CHOICES = [
+        ("home", "Home"),
+        ("work", "Work"),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    address = models.ForeignKey(
-        Address, on_delete=models.SET_NULL, null=True, related_name="order_address"
-    )
+    delivery_address_name = models.CharField(max_length=75, default=None, null=True, blank=True)
+    delivery_address_contact = models.CharField(max_length=20, default=None, null=True, blank=True)
+    delivery_address_line_1 = models.CharField(max_length=255,null=True, blank=True)
+    delivery_address_line_2 = models.CharField(max_length=255, null=True, blank=True)
+    delivery_city = models.CharField(max_length=100, default=None, null=True, blank=True)
+    delivery_state = models.CharField(max_length=100, default=None, null=True, blank=True)
+    delivery_country = models.CharField(max_length=100, default=None, null=True, blank=True)
+    delivery_postal_code = models.CharField(max_length=20, default=None, null=True, blank=True)
+    delivery_address_type = models.CharField(max_length=20, choices=ADDRESS_TYPE_CHOICES, default=None, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_price_after_discount = models.DecimalField(
@@ -189,14 +199,16 @@ class Order(models.Model):
         """Calculate the overall status of the order based on its items."""
         item_statuses = self.items.values_list("status", flat=True)
         if all(status == "delivered" for status in item_statuses):
-            return "completed"
+            return "Completed"
         elif any(status == "returned" for status in item_statuses):
-            return "partially returned"
+            return "Partially Returned"
         elif any(status == "shipped" for status in item_statuses):
-            return "partially shipped"
+            return "Partially Shipped"
         elif all(status == "cancelled" for status in item_statuses):
-            return "cancelled"
-        return "pending"
+            return "Cancelled"
+        elif any(status == "cancelled" for status in item_statuses):
+            return "Partially Cancelled"
+        return "Pending"
 
     def __str__(self):
         return f"Order #{self.id} on {self.created_at.strftime('%d-%m-%Y')}"

@@ -1,0 +1,98 @@
+{% extends 'store/base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="md:col-span-1">{% include 'store/profile_partials.html' with active_tab='orders' %}</div>
+            <!-- Main Content -->
+            <div class="md:col-span-3">
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <!-- Order Header -->
+                    <div class="bg-gray-50 p-6 border-b border-gray-200">
+                        <h2 class="text-2xl font-semibold text-gray-800">Order Details</h2>
+                        <p class="text-sm text-gray-600">Order #{{ order_item.order.id }}</p>
+                    </div>
+                    <!-- Product Information -->
+                    <div class="p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start">
+                            <div class="flex flex-col md:flex-row items-start">
+                                <img src="{{ variant.images.first.image_path.url }}"
+                                     alt="{{ variant.product.name }}"
+                                     class="w-32 h-32 object-cover rounded-lg shadow-md mb-4 md:mb-0 md:mr-6">
+                                <div>
+                                    <h3 class="text-xl font-semibold text-gray-800">{{ variant.product.name }} - {{ variant.name }}</h3>
+                                    <p class="text-sm text-gray-600 mb-2">{{ variant.product.brand }}</p>
+                                    <p class="text-lg font-bold text-gray-800"><span class="text-sm font-semibold text-gray-700">Price: </span>{{ order_item.sub_total }}</p>
+                                    <p class="text-sm text-gray-600">Quantity: {{ order_item.quantity }}</p>
+                                    <p class="text-sm text-gray-600">Status: {{ order_item.get_status_display }}</p>
+                                </div>
+                            </div>
+                            {% if order_item.discount %}
+                                <div class="mt-4 md:mt-0">
+                                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Item Price Details</h4>
+                                    <div class="bg-green-100 text-green-800 p-3 rounded-md">
+                                        <p class="font-semibold">MRP: {{ order_item.total_price }}</p>
+                                        <p class="font-semibold mt-1">Discount: {{ order_item.total_discount }}</p>
+                                        <p class="font-semibold mt-1">Discounted Price: {{ order_item.sub_total }}</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- Order Details -->
+                    <div class="p-6 bg-gray-50 border-t border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Delivery Address -->
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 mb-2">Delivery Address</h4>
+                                <address class="not-italic">
+                                    <p class="text-gray-600">{{ order_item.order.delivery_address_name }}</p>
+                                    <p class="text-gray-600">{{ order_item.order.delivery_address_contact }}</p>
+                                    <p class="text-gray-600">{{ order_item.order.delivery_address_line_1 }}</p>
+                                    {% if order_item.order.delivery_address_line_2 %}
+                                        <p class="text-gray-600">{{ order_item.order.delivery_address_line_2 }}</p>
+                                    {% endif %}
+                                    <p class="text-gray-600">
+                                        {{ order_item.order.delivery_city }}, {{ order_item.order.delivery_state }} {{ order_item.order.delivery_postal_code }}
+                                    </p>
+                                    <p class="text-gray-600">{{ order_item.order.delivery_country }}</p>
+                                </address>
+                            </div>
+                            <!-- Payment Information -->
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 mb-2">Payment Information</h4>
+                                <div class="bg-blue-100 text-blue-800 p-3 rounded-md mb-4">
+                                    <p class="font-semibold">Method: {{ order_item.order.get_order_payment_display }}</p>
+                                    <p class="font-semibold mt-1">Total Order Amount: {{ order_item.order.total_price_after_discount }}</p>
+                                </div>
+                                <p class="font-semibold mt-1">Order Status: {{ order_item.order.overall_status }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Other Items in the Order -->
+                {% if other_items %}
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Other Items in This Order</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {% for item in other_items %}
+                                <div class="bg-white shadow rounded-lg p-4 flex items-center">
+                                    <img src="{{ item.product_variant.images.first.image_path.url }}"
+                                         alt="{{ item.product_variant.product.name }}"
+                                         class="w-16 h-16 object-cover rounded-md mr-4">
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-gray-800">{{ item.product_variant.product.brand }} {{ item.product_variant.product.name }}</h4>
+                                        <p class="text-xs text-gray-600">{{ item.product_variant.name }}</p>
+                                        <p class="text-sm font-bold text-gray-800 mt-1">{{ item.sub_total }}</p>
+                                        <p class="text-sm    text-gray-800 mt-1">{{ item.get_status_display }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
