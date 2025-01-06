@@ -206,14 +206,17 @@
           <!-- Message Bar -->
           {% if messages %}
             <div id="message-bar" class="w-full z-50">
-              <div class="bg-red-500 text-white py-2 px-4 text-center shadow-md flex items-center justify-between">
-                <div>
-                  {% for message in messages %}
-                    <p>{{ message }}</p>
-                  {% endfor %}
+              {% for message in messages %}
+                <div class="py-2 px-4 text-center shadow-md flex items-center justify-between mb-2 
+                            {% if message.tags == 'error' %}bg-red-500 text-white
+                            {% elif message.tags == 'success' %}bg-green-500 text-white
+                            {% elif message.tags == 'warning' %}bg-yellow-500 text-black
+                            {% elif message.tags == 'info' %}bg-blue-500 text-white
+                            {% else %}bg-gray-500 text-white{% endif %}">
+                  <p>{{ message }}</p>
+                  <button onclick="this.parentElement.style.display='none'" class="hover:opacity-75 font-bold py-1 px-3 rounded ml-4" aria-label="Close Message">×</button>
                 </div>
-                <button id="close-message" class="bg-red-700 hover:bg-red-600 text-white font-bold py-1 px-3 rounded ml-4" aria-label="Close Message">×</button>
-              </div>
+              {% endfor %}
             </div>
           {% endif %}
           {% block content %}
