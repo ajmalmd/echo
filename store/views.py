@@ -1177,6 +1177,9 @@ def orders(request):
 @user_passes_test(is_customer)
 def view_order(request, item_id):
     order_item = get_object_or_404(OrderItem, id=item_id)
+    if not request.user == order_item.order.user:
+        messages.error(request, "Order not found")
+        return redirect("my_orders")
     variant = get_object_or_404(ProductVariant, id=order_item.product_variant.id)
     other_items = OrderItem.objects.filter(order=order_item.order.id).exclude(
         id=order_item.id

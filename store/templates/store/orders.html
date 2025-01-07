@@ -9,57 +9,65 @@
       <div class="md:col-span-3">
         <div class="bg-white shadow rounded-lg p-6">
           <h2 class="text-2xl font-semibold mb-4">Orders</h2>
-          {% for order in orders %}
-            <div class="mb-6">
-              <p class="font-medium text-lg mb-2">{{ order }}</p>
-              {% for order_item in order.order_items %}
-                <div class="bg-white border border-gray-200 rounded-md p-4 mb-3 shadow-sm">
-                  <a href="{% url "view_order" order_item.id %}">
-                    <div class="flex flex-wrap md:flex-nowrap">
-                      <!-- Image -->
-                      <div class="w-full md:w-1/5 md:pr-4 mb-4 md:mb-0">
-                        <img src="{{ order_item.product_variant.images.first.image_path.url }}"
-                             alt="{{ item.product_variant.name }}"
-                             class="w-full h-32 object-contain rounded-md" />
-                      </div>
-                      <!-- Details -->
-                      <div class="w-full md:w-4/5 flex flex-col justify-between">
-                        <div class="flex justify-between items-start mb-2">
-                          <div>
-                            <p class="font-semibold">
-                              {{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}
+          {% if orders %}
+            {% for order in orders %}
+              <div class="mb-6">
+                <p class="font-medium text-lg mb-2">{{ order }}</p>
+                {% for order_item in order.order_items %}
+                  <div class="bg-white border border-gray-200 rounded-md p-4 mb-3 shadow-sm">
+                    <a href="{% url "view_order" order_item.id %}">
+                      <div class="flex flex-wrap md:flex-nowrap">
+                        <!-- Image -->
+                        <div class="w-full md:w-1/5 md:pr-4 mb-4 md:mb-0">
+                          <img src="{{ order_item.product_variant.images.first.image_path.url }}"
+                               alt="{{ item.product_variant.name }}"
+                               class="w-full h-32 object-contain rounded-md" />
+                        </div>
+                        <!-- Details -->
+                        <div class="w-full md:w-4/5 flex flex-col justify-between">
+                          <div class="flex justify-between items-start mb-2">
+                            <div>
+                              <p class="font-semibold">
+                                {{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}
+                              </p>
+                              <p class="text-sm text-gray-600 mt-1">Quantity: {{ order_item.quantity }}</p>
+                            </div>
+                            <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %} bg-green-100 text-green-800 {% elif order_item.status == 'pending' %} bg-yellow-100 text-yellow-800 {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %} bg-red-100 text-red-800 {% else %} bg-gray-100 text-gray-800 {% endif %} ">
+                              {{ order_item.get_status_display }}
                             </p>
-                            <p class="text-sm text-gray-600 mt-1">Quantity: {{ order_item.quantity }}</p>
                           </div>
-                          <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %} bg-green-100 text-green-800 {% elif order_item.status == 'pending' %} bg-yellow-100 text-yellow-800 {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %} bg-red-100 text-red-800 {% else %} bg-gray-100 text-gray-800 {% endif %} ">
-                            {{ order_item.get_status_display }}
-                          </p>
-                        </div>
-                        <!-- Buttons -->
-                        <div class="flex justify-end space-x-2 mt-2">
-                          {% if order_item.status == 'pending' or order_item.status == 'confirmed' %}
-                            <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn"
-                                    data-item-id="{{ order_item.id }}"
-                                    data-order-id="{{ order.id }}">Cancel</button>
-                          {% endif %}
-                          {% if order_item.status == 'delivered' %}
-                            <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn"
-                                    data-item-id="{{ order_item.id }}"
-                                    data-order-id="{{ order.id }}">Return</button>
-                          {% endif %}
-                          {% if order_item.status == 'return_requested' %}
-                            <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn"
-                                    data-item-id="{{ order_item.id }}"
-                                    data-order-id="{{ order.id }}">Cancel Return</button>
-                          {% endif %}
+                          <!-- Buttons -->
+                          <div class="flex justify-end space-x-2 mt-2">
+                            {% if order_item.status == 'pending' or order_item.status == 'confirmed' %}
+                              <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn"
+                                      data-item-id="{{ order_item.id }}"
+                                      data-order-id="{{ order.id }}">Cancel</button>
+                            {% endif %}
+                            {% if order_item.status == 'delivered' %}
+                              <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn"
+                                      data-item-id="{{ order_item.id }}"
+                                      data-order-id="{{ order.id }}">Return</button>
+                            {% endif %}
+                            {% if order_item.status == 'return_requested' %}
+                              <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn"
+                                      data-item-id="{{ order_item.id }}"
+                                      data-order-id="{{ order.id }}">Cancel Return</button>
+                            {% endif %}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </a>
-                </div>
-              {% endfor %}
+                    </a>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-8">
+              <p class="text-gray-500">Orders are empty</p>
+              <a href="{% url 'store_products' %}"
+                 class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
             </div>
-          {% endfor %}
+          {% endif %}
         </div>
       </div>
     </div>
