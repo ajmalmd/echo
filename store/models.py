@@ -71,6 +71,19 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.user.fullname} - {self.product.name}"
+    
+
+#Wishlist Model
+class Wishlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
+    product_variant = models.ForeignKey('manager.ProductVariant', on_delete=models.CASCADE, related_name="wishlisted_by")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product_variant')  # Prevent duplicates
+
+    def __str__(self):
+        return f"{self.user.fullname} - {self.product_variant.name}"
 
 
 # Cart Model
@@ -166,9 +179,7 @@ class Address(models.Model):
 class Order(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ("cod", "Cash on Delivery"),
-        # ("razorpay", "Razorpay"),
-        # ("upi", "UPI"),
-        # ("card", "Card Payment"),
+        ("razorpay", "Razorpay"),
     ]
     ADDRESS_TYPE_CHOICES = [
         ("home", "Home"),

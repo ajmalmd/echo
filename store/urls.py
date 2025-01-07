@@ -22,6 +22,8 @@ urlpatterns = [
     path("set-default-address/", views.set_default_address, name="set_default_address"),
     path("delete_address/", views.delete_address, name="delete_address"),
     
+    path("wishlist/", views.wishlist, name="wishlist"),
+    path("toggle-wishlist", views.toggle_wishlist, name="toggle_wishlist"),
     path("cart/", views.cart, name="cart"),
     path("add-to-cart/", views.add_to_cart, name="add_to_cart"),
     path("checkout/address/", views.select_address, name="checkout_address"),

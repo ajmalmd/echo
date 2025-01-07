@@ -579,11 +579,11 @@ def addresses(request):
         if not is_valid_phone(phone):
             messages.error(request, "Invalid phone number.")
             return redirect("addresses")
-        
+
         if not is_valid_address(address_line_1):
             messages.error(request, "Invalid Building/Street address.")
             return redirect("addresses")
-            
+
         if not is_valid_name(address_line_2):
             messages.error(request, "Invalid Town/Locality.")
             return redirect("addresses")
@@ -904,7 +904,8 @@ def save_address(request):
         )
     if not is_valid_address(address.address_line_1):
         return JsonResponse(
-            {"success": False, "message": "Invalid Building/Street address."}, status=400
+            {"success": False, "message": "Invalid Building/Street address."},
+            status=400,
         )
     if not is_valid_name(address.address_line_2):
         return JsonResponse(
@@ -987,7 +988,7 @@ def checkout_payment(request):
                 # Create the order
                 order = Order.objects.create(
                     user=request.user,
-                    delivery_address_name= address.name,
+                    delivery_address_name=address.name,
                     delivery_address_contact=address.contact,
                     delivery_address_line_1=address.address_line_1,
                     delivery_address_line_2=address.address_line_2,
@@ -1188,3 +1189,45 @@ def view_order(request, item_id):
     context = {"variant": variant, "order_item": order_item, "other_items": other_items}
 
     return render(request, "store/view_order.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def wishlist(request):
+    wishlist_items = (
+        Wishlist.objects.filter(user=request.user)
+        .prefetch_related("product_variant")
+        .order_by("-added_at")
+    )
+    context = {"wishlist_items": wishlist_items}
+    return render(request, "store/wishlist.html", context)
+
+
+@login_required(login_url="login")
+@user_passes_test(is_customer)
+def toggle_wishlist(request):
+    if (
+        request.method == "POST"
+        and request.headers.get("x-requested-with") == "XMLHttpRequest"
+    ):
+        data = json.loads(request.body)  # Parse JSON data
+        variant_id = data.get("variant_id")
+        variant = get_object_or_404(ProductVariant, id=variant_id)
+
+        wishlist, wishlist_created = Wishlist.objects.get_or_create(
+            user=request.user, product_variant=variant
+        )
+
+        if not wishlist_created:
+            wishlist.delete()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "action": "removed",
+                    "message": "Removed item from wishlist.",
+                }
+            )
+        return JsonResponse(
+            {"success": True, "action": "added", "message": "Item added to wishlist."}
+        )
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
