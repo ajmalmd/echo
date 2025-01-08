@@ -6,7 +6,6 @@ from .models import *
 from manager.models import *
 from .services import generate_otp, send_otp_email, get_new_arrivals
 from .validators import *
-from django.contrib.auth.decorators import user_passes_test
 from django.utils.timezone import now, timedelta
 from datetime import datetime, date
 from django.views.decorators.cache import never_cache
@@ -22,6 +21,15 @@ from django.contrib.auth.hashers import check_password
 
 def is_customer(user):
     return user.is_authenticated and not user.is_staff
+
+#decorator for preventing non customers to access pages
+def customer_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not is_customer(request.user):
+            return redirect("home")
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
 
 
 @never_cache
@@ -472,7 +480,7 @@ def view_variant(request, variant_id):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def profile(request):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         if request.method == "POST":
@@ -527,7 +535,7 @@ def profile(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def addresses(request):
 
     default_address = request.user.addresses.filter(is_default=True).first()
@@ -651,7 +659,7 @@ def addresses(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def cart(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
     cart_items = cart.items.select_related(
@@ -736,7 +744,7 @@ def cart(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def add_to_cart(request):
     if (
         request.method == "POST"
@@ -804,7 +812,7 @@ def add_to_cart(request):
 
 # select address to checkout order
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def select_address(request):
     default_address = request.user.addresses.filter(is_default=True).first()
     saved_addresses = request.user.addresses.filter(is_default=False)
@@ -846,7 +854,7 @@ def select_address(request):
 
 @require_POST
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def delete_address(request):
     data = json.loads(request.body)  # Parse JSON data
     address_id = data.get("address_id")
@@ -860,7 +868,7 @@ def delete_address(request):
 
 @require_POST
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def set_default_address(request):
     data = json.loads(request.body)  # Parse JSON data
     address_id = data.get("address_id")
@@ -878,7 +886,7 @@ def set_default_address(request):
 
 @require_POST
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def save_address(request):
     address_id = request.POST.get("edit")
     if address_id:
@@ -939,7 +947,7 @@ def save_address(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def checkout_payment(request):
     selected_address_id = request.session.get("selected_address_id")
     if not selected_address_id:
@@ -1043,7 +1051,7 @@ def checkout_payment(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def change_password(request):
     has_password = request.user.has_usable_password()
     context = {"has_password": has_password}
@@ -1090,7 +1098,7 @@ def change_password(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def orders(request):
     orders = (
         Order.objects.filter(user=request.user)
@@ -1175,7 +1183,7 @@ def orders(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def view_order(request, item_id):
     order_item = get_object_or_404(OrderItem, id=item_id)
     if not request.user == order_item.order.user:
@@ -1192,7 +1200,7 @@ def view_order(request, item_id):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def wishlist(request):
     wishlist_items = (
         Wishlist.objects.filter(user=request.user)
@@ -1204,7 +1212,7 @@ def wishlist(request):
 
 
 @login_required(login_url="login")
-@user_passes_test(is_customer)
+@customer_required
 def toggle_wishlist(request):
     if (
         request.method == "POST"
