@@ -234,14 +234,14 @@
         })
       })
 
-      const variantButtons = document.querySelectorAll('.add-to-cart-btn')
-        variantButtons.forEach((button) => {
-          button.addEventListener('click', function (e) {
-            e.preventDefault()
-            const variantId = this.dataset.variantId
-            addToCart(variantId)
-          })
+      const addCartButtons = document.querySelectorAll('.add-to-cart-btn')
+      addCartButtons.forEach((button) => {
+        button.addEventListener('click', function (e) {
+          e.preventDefault()
+          const variantId = this.dataset.variantId
+          addToCart(variantId)
         })
+      })
 
       const filterToggle = document.getElementById('filter-toggle');
       const filterContent = document.getElementById('filter-content');
