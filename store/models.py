@@ -189,7 +189,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     delivery_address_name = models.CharField(max_length=75, default=None, null=True, blank=True)
     delivery_address_contact = models.CharField(max_length=20, default=None, null=True, blank=True)
-    delivery_address_line_1 = models.CharField(max_length=255,null=True, blank=True)
+    delivery_address_line_1 = models.CharField(max_length=255, null=True, blank=True)
     delivery_address_line_2 = models.CharField(max_length=255, null=True, blank=True)
     delivery_city = models.CharField(max_length=100, default=None, null=True, blank=True)
     delivery_state = models.CharField(max_length=100, default=None, null=True, blank=True)
@@ -198,13 +198,21 @@ class Order(models.Model):
     delivery_address_type = models.CharField(max_length=20, choices=ADDRESS_TYPE_CHOICES, default=None, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_price_after_discount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
-    )
-    order_payment = models.CharField(
-        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod"
-    )
+    total_price_after_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    order_payment = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Razorpay-specific fields
+    razorpay_order_id = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=255, null=True, blank=True)
+    razorpay_payment_status = models.CharField(
+        max_length=50, choices=[
+            ("created", "Created"),
+            ("paid", "Paid"),
+            ("failed", "Failed"),
+        ], 
+        null=True, blank=True
+    )
 
     def overall_status(self):
         """Calculate the overall status of the order based on its items."""
