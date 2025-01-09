@@ -4,7 +4,9 @@
   <div class="container mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <!-- Sidebar -->
-      <div class="md:col-span-1">{% include 'store/profile_partials.html' with active_tab='orders' %}</div>
+      <div class="md:col-span-1">
+        {% include 'store/profile_partials.html' with active_tab='orders' %}
+      </div>
       <!-- Main Content -->
       <div class="md:col-span-3">
         <div class="bg-white shadow rounded-lg p-6">
@@ -12,53 +14,52 @@
           {% if orders %}
             {% for order in orders %}
               <div class="mb-6">
-                <p class="font-medium text-lg mb-2">{{ order }}</p>
-                {% if order.razorpay_order_id and order.razorpay_payment_status == 'created' %}
-                  <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 razorpay-payment-btn"
-                          data-order-id="{{ order.id }}"
-                          data-razorpay-order-id="{{ order.razorpay_order_id }}">
-                    Complete Payment
-                  </button>
-                {% endif %}
+                <div class="flex justify-between">
+                  <p class="font-medium text-lg mb-2">{{ order }}</p>
+                  {% if order.razorpay_order_id and order.razorpay_payment_status == 'created' %}
+                    <div>
+                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-300 razorpay-order-cancel-btn" data-order-id="{{ order.id }}" data-razorpay-order-id="{{ order.razorpay_order_id }}">Cancel</button>
+                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 razorpay-payment-btn" data-order-id="{{ order.id }}" data-razorpay-order-id="{{ order.razorpay_order_id }}">Complete Payment</button>
+                    </div>
+                  {% endif %}
+                </div>
                 {% for order_item in order.order_items %}
                   <div class="bg-white border border-gray-200 rounded-md p-4 mb-3 shadow-sm">
-                    <a href="{% url "view_order" order_item.id %}">
+                    <a href="{% url 'view_order' order_item.id %}">
                       <div class="flex flex-wrap md:flex-nowrap">
                         <!-- Image -->
                         <div class="w-full md:w-1/5 md:pr-4 mb-4 md:mb-0">
-                          <img src="{{ order_item.product_variant.images.first.image_path.url }}"
-                               alt="{{ item.product_variant.name }}"
-                               class="w-full h-32 object-contain rounded-md" />
+                          <img src="{{ order_item.product_variant.images.first.image_path.url }}" alt="{{ item.product_variant.name }}" class="w-full h-32 object-contain rounded-md" />
                         </div>
                         <!-- Details -->
                         <div class="w-full md:w-4/5 flex flex-col justify-between">
                           <div class="flex justify-between items-start mb-2">
                             <div>
-                              <p class="font-semibold">
-                                {{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}
-                              </p>
+                              <p class="font-semibold">{{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}</p>
                               <p class="text-sm text-gray-600 mt-1">Quantity: {{ order_item.quantity }}</p>
                             </div>
-                            <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %} bg-green-100 text-green-800 {% elif order_item.status == 'pending' %} bg-yellow-100 text-yellow-800 {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %} bg-red-100 text-red-800 {% else %} bg-gray-100 text-gray-800 {% endif %} ">
-                              {{ order_item.get_status_display }}
-                            </p>
+                            <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %}
+                                 bg-green-100 text-green-800
+                              {% elif order_item.status == 'pending' %}
+                                 bg-yellow-100 text-yellow-800
+                              {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %}
+                                 bg-red-100 text-red-800
+                              {% else %}
+                                 bg-gray-100 text-gray-800
+                              {% endif %} ">{{ order_item.get_status_display }}</p>
                           </div>
                           <!-- Buttons -->
                           <div class="flex justify-end space-x-2 mt-2">
                             {% if order_item.status == 'pending' or order_item.status == 'confirmed' %}
-                              <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn"
-                                      data-item-id="{{ order_item.id }}"
-                                      data-order-id="{{ order.id }}">Cancel</button>
+                              {% if order.order_payment == 'cod' or order.razorpay_payment_status == 'paid' %}
+                                <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Cancel</button>
+                              {% endif %}
                             {% endif %}
                             {% if order_item.status == 'delivered' %}
-                              <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn"
-                                      data-item-id="{{ order_item.id }}"
-                                      data-order-id="{{ order.id }}">Return</button>
+                              <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Return</button>
                             {% endif %}
                             {% if order_item.status == 'return_requested' %}
-                              <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn"
-                                      data-item-id="{{ order_item.id }}"
-                                      data-order-id="{{ order.id }}">Cancel Return</button>
+                              <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Cancel Return</button>
                             {% endif %}
                           </div>
                         </div>
@@ -71,8 +72,7 @@
           {% else %}
             <div class="text-center py-8">
               <p class="text-gray-500">Orders are empty</p>
-              <a href="{% url 'store_products' %}"
-                 class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
+              <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
             </div>
           {% endif %}
         </div>
@@ -82,6 +82,7 @@
 {% endblock %}
 {% block script %}
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     function actionOrderItem(itemId, orderId, action) {
       fetch('{% url "my_orders" %}', {
@@ -99,10 +100,14 @@
         })
         .catch((error) => {
           console.error('Error:', error)
-          alert('An error occurred')
+          Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'An error occurred'
+          })
         })
     }
-
+    
     function initializeRazorpay(orderId, razorpayOrderId) {
       fetch(`/get-razorpay-order-details/${orderId}/`, {
         method: 'GET',
@@ -111,52 +116,97 @@
           'X-CSRFToken': '{{ csrf_token }}'
         }
       })
-      .then(response => response.json())
-      .then(data => {
-        const options = {
-          key: data.razorpay_key_id,
-          amount: data.amount,
-          currency: data.currency,
-          name: 'Echo',
-          description: 'Order Payment',
-          order_id: razorpayOrderId,
-          handler: function (response) {
-            document.location.href = '{% url "razorpay_payment_success" %}?' + 
-              'razorpay_payment_id=' + response.razorpay_payment_id + 
-              '&razorpay_order_id=' + response.razorpay_order_id +
-              '&razorpay_signature=' + response.razorpay_signature;
-          },
-          prefill: {
-            name: data.name,
-            email: data.email,
-          },
-          theme: {
-            color: '#171717'
-          },
-          modal: {
-            ondismiss: function() {
-              Swal.fire({
-                icon: 'error',
-                title: "Payment failed",
-                showConfirmButton: false,
-                timer: 2000
-              });
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data)
+          const options = {
+            key: data.razorpay_key_id,
+            amount: data.amount,
+            currency: data.currency,
+            name: 'Echo',
+            description: 'Order Payment',
+            order_id: razorpayOrderId,
+            handler: function (response) {
+              document.location.href = '{% url "razorpay_payment_success" %}?' + 'razorpay_payment_id=' + response.razorpay_payment_id + '&razorpay_order_id=' + response.razorpay_order_id + '&razorpay_signature=' + response.razorpay_signature
+            },
+            prefill: {
+              name: data.name,
+              email: data.email
+            },
+            theme: {
+              color: '#171717'
+            },
+            modal: {
+              ondismiss: function () {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Payment failed',
+                  showConfirmButton: false,
+                  timer: 2000
+                })
+              }
             }
           }
-        };
-        const rzp = new Razorpay(options);
-        rzp.open();
-      })
-      .catch((error) => {
-        Swal.fire({
-          icon: 'error',
-          title: error,
-          showConfirmButton: false,
-          timer: 2000
-        });
-      });
+          const rzp = new Razorpay(options)
+          rzp.open()
+        })
+        .catch((error) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error,
+            showConfirmButton: false,
+            timer: 2000
+          })
+        })
     }
-
+    
+    function cancelRazorpayOrder(orderId) {
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Dismiss'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch('{% url "cancel_razorpay_order" %}', {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': '{{ csrf_token }}',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              order_id: orderId
+            })
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Order cancelled',
+                  showConfirmButton: false,
+                  timer: 2000
+                }).then(() => {
+                  location.reload()
+                })
+              } else {
+                Swal.fire('Error!', data.error || 'Failed to cancel the order. Please try again.', 'error')
+              }
+            })
+            .catch((error) => {
+              console.error('Error:', error)
+              Swal.fire('Error!', 'An error occurred while cancelling the order.', 'error')
+            })
+        }
+      })
+    }
+    
     document.addEventListener('DOMContentLoaded', function () {
       const cancelBtns = document.querySelectorAll('.cancel-btn')
       cancelBtns.forEach((btn) => {
@@ -184,13 +234,21 @@
           actionOrderItem(itemId, orderId, 'cancel_return')
         })
       })
-
+    
       const razorpayPaymentBtns = document.querySelectorAll('.razorpay-payment-btn')
       razorpayPaymentBtns.forEach((btn) => {
         btn.addEventListener('click', function () {
           const orderId = this.dataset.orderId
           const razorpayOrderId = this.dataset.razorpayOrderId
           initializeRazorpay(orderId, razorpayOrderId)
+        })
+      })
+    
+      const razorpayOrderCancelBtns = document.querySelectorAll('.razorpay-order-cancel-btn')
+      razorpayOrderCancelBtns.forEach((btn) => {
+        btn.addEventListener('click', function () {
+          const orderId = this.dataset.orderId
+          cancelRazorpayOrder(orderId)
         })
       })
     })

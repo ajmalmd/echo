@@ -210,6 +210,7 @@ class Order(models.Model):
             ("created", "Created"),
             ("paid", "Paid"),
             ("failed", "Failed"),
+            ("cancelled", "Cancelled")
         ], 
         null=True, blank=True
     )

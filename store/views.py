@@ -1103,6 +1103,37 @@ def get_razorpay_order_details(request, order_id):
         'name': request.user.fullname,
         'email': request.user.email,
     })
+    
+
+@require_POST
+def cancel_razorpay_order(request):
+    if request.method=='POST':
+        data = json.loads(request.body)
+        order_id = data.get("order_id")
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        if order.razorpay_order_id and order.razorpay_payment_status == 'created':
+            try:
+                # Update the order status in your database
+                order.razorpay_payment_status = 'cancelled'
+                order.save()
+                
+                # Cancel all order items
+                for item in order.items.all():
+                    item.status = 'cancelled'
+                    variant = get_object_or_404(ProductVariant,id=item.product_variant.id)
+                    variant.stock+=item.quantity
+                    variant.save()
+                    item.save()
+                
+                return JsonResponse({'success': True})
+            except razorpay.errors.BadRequestError as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': 'An unexpected error occurred'})
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid order or payment status'})
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
 @login_required(login_url="login")
