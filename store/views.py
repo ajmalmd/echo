@@ -17,6 +17,9 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.hashers import check_password
+from django.views.decorators.csrf import csrf_exempt 
+from django.conf import settings
+import razorpay
 
 
 def is_customer(user):
@@ -951,16 +954,12 @@ def save_address(request):
 def checkout_payment(request):
     selected_address_id = request.session.get("selected_address_id")
     if not selected_address_id:
-        messages.error(
-            request, "Please select an address before proceeding to payment."
-        )
+        messages.error(request, "Please select an address before proceeding to payment.")
         return redirect("checkout_address")
 
     address = get_object_or_404(Address, id=selected_address_id, user=request.user)
     cart = Cart.objects.get(user=request.user)
-    cart_items = cart.items.select_related(
-        "product_variant", "product_variant__product"
-    ).all()
+    cart_items = cart.items.select_related("product_variant", "product_variant__product").all()
 
     if cart_items.count() == 0:
         del request.session["selected_address_id"]
@@ -1031,14 +1030,30 @@ def checkout_payment(request):
                 # Clear the cart
                 cart.items.all().delete()
 
+                if payment_method == "razorpay":
+                    razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+                    # Create Razorpay order
+                    razorpay_order = razorpay_client.order.create({
+                        'amount': int(total_discounted * 100),  # Amount in paise
+                        'currency': 'INR',
+                        'payment_capture': '1'
+                    })
+                    order.razorpay_order_id = razorpay_order['id']
+                    order.razorpay_payment_status = "created"
+                    order.save()
+
+                    return JsonResponse({
+                        'order_id': order.id,
+                        'razorpay_order_id': razorpay_order['id'],
+                        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+                        'amount': int(total_discounted * 100),
+                    })
+
             messages.success(request, "Order placed successfully!")
             del request.session["selected_address_id"]
-            # return redirect("order_confirmation", order_id=order.id)
-            return redirect("home")
+            return redirect("my_orders")
         except Exception as e:
-            messages.error(
-                request, f"An error occurred while placing your order: {str(e)}"
-            )
+            messages.error(request, f"An error occurred while placing your order: {str(e)}")
             return redirect("checkout_payment")
 
     context = {
@@ -1046,8 +1061,48 @@ def checkout_payment(request):
         "total_discount": total_discount,
         "total": total_discounted,
         "payment_methods": payment_methods,
+        "razorpay_key_id": settings.RAZORPAY_KEY_ID,
     }
     return render(request, "store/checkout_payment.html", context)
+
+@csrf_exempt
+def razorpay_payment_success(request):
+    razorpay_payment_id = request.GET.get('razorpay_payment_id')
+    razorpay_order_id = request.GET.get('razorpay_order_id')
+    razorpay_signature = request.GET.get('razorpay_signature')
+
+    try:
+        order = Order.objects.get(razorpay_order_id=razorpay_order_id)
+        razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        # Verify the payment signature
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+        razorpay_client.utility.verify_payment_signature(params_dict)
+
+        order.razorpay_payment_id = razorpay_payment_id
+        order.razorpay_payment_status = "paid"
+        order.save()
+
+        messages.success(request, "Payment successful!")
+        return redirect("my_orders")
+    except:
+        messages.error(request, "Payment verification failed.")
+        return redirect('my_orders')
+
+
+def get_razorpay_order_details(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    return JsonResponse({
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'amount': int(order.total_price_after_discount * 100),  # Amount in paise
+        'currency': 'INR',
+        'name': request.user.fullname,
+        'email': request.user.email,
+    })
 
 
 @login_required(login_url="login")

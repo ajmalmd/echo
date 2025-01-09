@@ -42,6 +42,7 @@
   </div>
 {% endblock %}
 {% block script %}
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const form = document.getElementById('payment-form')
@@ -59,6 +60,54 @@
       })
     
       updateButtonState()
+    
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value
+    
+        if (paymentMethod === 'razorpay') {
+          fetch('{% url "checkout_payment" %}', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              const options = {
+                key: data.razorpay_key_id,
+                amount: data.amount,
+                currency: 'INR',
+                name: 'Echo',
+                description: 'Order Payment',
+                order_id: data.razorpay_order_id,
+                handler: function (response) {
+                  document.location.href = '{% url "razorpay_payment_success" %}?' + 'razorpay_payment_id=' + response.razorpay_payment_id + '&razorpay_order_id=' + response.razorpay_order_id + '&razorpay_signature=' + response.razorpay_signature
+                },
+                prefill: {
+                  name: '{{ request.user.fullname }}',
+                  email: '{{ request.user.email }}'
+                },
+                theme: {
+                  color: '#171717'
+                },
+                modal: {
+                  ondismiss: function () {
+                    window.location.href = '{% url "my_orders" %}'
+                  }
+                }
+              }
+              const rzp = new Razorpay(options)
+              rzp.open()
+            })
+            .catch((error) => {
+              console.error('Error:', error)
+            })
+        } else {
+          form.submit()
+        }
+      })
     })
   </script>
 {% endblock %}

@@ -28,4 +28,6 @@ urlpatterns = [
     path("add-to-cart/", views.add_to_cart, name="add_to_cart"),
     path("checkout/address/", views.select_address, name="checkout_address"),
     path("checkout/payment/", views.checkout_payment, name="checkout_payment"),
+    path('razorpay-payment-success/', views.razorpay_payment_success, name='razorpay_payment_success'),
+    path('get-razorpay-order-details/<int:order_id>/', views.get_razorpay_order_details, name='get_razorpay_order_details'),
 ]
