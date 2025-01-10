@@ -180,6 +180,7 @@ class Order(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ("cod", "Cash on Delivery"),
         ("razorpay", "Razorpay"),
+        ("wallet", "Wallet"),
     ]
     ADDRESS_TYPE_CHOICES = [
         ("home", "Home"),
@@ -214,6 +215,23 @@ class Order(models.Model):
         ], 
         null=True, blank=True
     )
+    
+    def payment_status(self):
+        if self.order_payment == 'cod':
+            return "COD"
+        elif self.order_payment == 'razorpay':
+            if self.razorpay_payment_status == 'paid':
+                return "Paid"
+            elif self.razorpay_payment_status == 'created':
+                return "Pending"
+            elif self.razorpay_payment_status == 'failed':
+                return "Failed"
+            elif self.razorpay_payment_status == 'cancelled':
+                return "Refunded"
+        elif self.order_payment == 'wallet':
+            return "Paid"
+        else:
+            return ""
 
     def overall_status(self):
         """Calculate the overall status of the order based on its items."""
