@@ -16,9 +16,7 @@
          class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'my_orders' or url_name == 'view_order' %} bg-black text-white {% else %} text-gray-700 hover:bg-gray-100 {% endif %}">
         Orders
       </a>
-      <a {% comment %}
-         href="{% url 'wallet' %}"
-         {% endcomment %}
+      <a href="{% url 'wallet' %}"
          class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'wallet' %} bg-black text-white {% else %} text-gray-700 hover:bg-gray-100 {% endif %}">
         Wallet
       </a>

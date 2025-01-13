@@ -1,0 +1,64 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <!-- Sidebar -->
+      <div class="md:col-span-1">
+        {% include 'store/profile_partials.html' with active_tab='wallet' %}
+      </div>
+
+      <!-- Main Content -->
+      <div class="md:col-span-3">
+        <div class="bg-white shadow rounded-lg p-6">
+          <h2 class="text-2xl font-semibold mb-4">Wallet</h2>
+          
+          <!-- Wallet Balance -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Current Balance</h3>
+            <p class="text-2xl font-semibold text-green-600">{{ wallet.balance }}</p>
+          </div>
+
+          <!-- Transactions List -->
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Transaction History</h3>
+            {% if transactions %}
+              <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th class="py-2 px-4 text-left">Date</th>
+                      <th class="py-2 px-4 text-left">Type</th>
+                      <th class="py-2 px-4 text-left">Purpose</th>
+                      <th class="py-2 px-4 text-left">Amount</th>
+                      <th class="py-2 px-4 text-left">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for transaction in transactions %}
+                      <tr class="{% cycle 'bg-gray-50' '' %}">
+                        <td class="py-2 px-4">{{ transaction.created_at|date:"M d, Y H:i" }}</td>
+                        <td class="py-2 px-4">
+                          <span class="{% if transaction.transaction_type == 'credit' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ transaction.get_transaction_type_display }}
+                          </span>
+                        </td>
+                        <td class="py-2 px-4">{{ transaction.get_transaction_purpose_display }}</td>
+                        <td class="py-2 px-4">{{ transaction.amount }}</td>
+                        <td class="py-2 px-4">{{ transaction.description }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p class="text-gray-600">No transactions found.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

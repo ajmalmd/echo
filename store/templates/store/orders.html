@@ -51,7 +51,7 @@
                           <!-- Buttons -->
                           <div class="flex justify-end space-x-2 mt-2">
                             {% if order_item.status == 'pending' or order_item.status == 'confirmed' %}
-                              {% if order.order_payment == 'cod' or order.razorpay_payment_status == 'paid' %}
+                              {% if order.order_payment == 'cod' or order.razorpay_payment_status == 'paid' or order.order_payment == 'wallet' %}
                                 <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Cancel</button>
                               {% endif %}
                             {% endif %}
@@ -131,7 +131,8 @@
             },
             prefill: {
               name: data.name,
-              email: data.email
+              email: data.email,
+              contact: '{{user.mobile_number}}'
             },
             theme: {
               color: '#171717'

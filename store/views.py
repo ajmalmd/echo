@@ -397,8 +397,33 @@ def home(request):
 def products_listing(request):
     brands = Brand.objects.filter(is_active=True)
 
-    sort_by = request.GET.get("sort", "featured")  # Default to 'featured'
-    search_query = request.GET.get("search", "")  # Get the search query
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Get filter and sort parameters from POST data
+        brand_filter = request.POST.getlist("brand")
+        type_filter = request.POST.getlist("type")
+        connectivity_filter = request.POST.getlist("connectivity")
+        sort_by = request.POST.get("sort", "featured")
+        
+        # Store filter and sort parameters in session
+        request.session['brand_filter'] = brand_filter
+        request.session['type_filter'] = type_filter
+        request.session['connectivity_filter'] = connectivity_filter
+        request.session['sort_by'] = sort_by
+        
+        return JsonResponse({'reload': True})
+
+    # Get filter and sort parameters from session or GET parameters
+    brand_filter = request.session.get('brand_filter') or request.GET.getlist("brand")
+    type_filter = request.session.get('type_filter') or request.GET.getlist("type")
+    connectivity_filter = request.session.get('connectivity_filter') or request.GET.getlist("connectivity")
+    sort_by = request.session.get('sort_by') or request.GET.get("sort", "featured")
+    search_query = request.GET.get("search", "")
+
+    # Clear session variables
+    request.session.pop('brand_filter', None)
+    request.session.pop('type_filter', None)
+    request.session.pop('connectivity_filter', None)
+    request.session.pop('sort_by', None)
 
     products = (
         ProductVariant.objects.filter(
@@ -424,15 +449,25 @@ def products_listing(request):
             | Q(product__description__icontains=search_query)
         )
 
+    # Apply brand filter
+    if brand_filter:
+        products = products.filter(product__brand__id__in=brand_filter)
+
+    # Apply type filter
+    if type_filter:
+        products = products.filter(product__type__in=type_filter)
+
+    # Apply connectivity filter
+    if connectivity_filter:
+        products = products.filter(product__connectivity__in=connectivity_filter)
+
     # Apply sorting
     if sort_by == "popularity":
-        products = products.annotate(popularity=Count("order_items")).order_by(
-            "-popularity"
-        )
+        products = products.annotate(popularity=Count("order_items")).order_by("-popularity")
     elif sort_by == "price_low_high":
-        products = sorted(products, key=lambda p: p.discounted_price())
+        products = products.order_by("price")
     elif sort_by == "price_high_low":
-        products = sorted(products, key=lambda p: p.discounted_price(), reverse=True)
+        products = products.order_by("-price")
     elif sort_by == "avg_rating":
         products = products.order_by("-avg_rating")
     elif sort_by == "new_arrivals":
@@ -441,7 +476,7 @@ def products_listing(request):
         products = products.order_by("product_name")
     elif sort_by == "name_desc":
         products = products.order_by("-product_name")
-    else:  # 'featured' or default - featuring products with higher stock
+    else:  # 'featured' or default
         products = products.order_by("-stock")
 
     return render(
@@ -453,6 +488,9 @@ def products_listing(request):
             "products": products,
             "current_sort": sort_by,
             "search_query": search_query,
+            "brand_filter": brand_filter,
+            "type_filter": type_filter,
+            "connectivity_filter": connectivity_filter
         },
     )
 
@@ -982,12 +1020,21 @@ def checkout_payment(request):
     total_discounted = round(cart.total_discounted_price(), 2)
     total_discount = total_mrp - total_discounted
 
-    payment_methods = Order.PAYMENT_METHOD_CHOICES
+    user_wallet, created = Wallet.objects.get_or_create(user=request.user)
+    if user_wallet.balance >= total_discounted:
+        payment_methods = Order.PAYMENT_METHOD_CHOICES
+    else:
+        payment_methods = [
+            method for method in Order.PAYMENT_METHOD_CHOICES if method[0] != 'wallet'
+        ]
 
     if request.method == "POST":
         payment_method = request.POST.get("payment_method")
         if payment_method not in dict(payment_methods):
             messages.error(request, "Invalid payment method selected.")
+            return redirect("checkout_payment")
+        if payment_method == 'wallet' and user_wallet.balance < total_discounted:
+            messages.error(request, "Insufficient balance in your wallet.")
             return redirect("checkout_payment")
 
         try:
@@ -1048,6 +1095,17 @@ def checkout_payment(request):
                         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
                         'amount': int(total_discounted * 100),
                     })
+                    
+                if payment_method == 'wallet':
+                    WalletTransaction.objects.create(
+                        wallet=user_wallet,
+                        amount=total_discounted,
+                        transaction_type='debit',
+                        transaction_purpose='purchase',
+                        description = f"Purchase of order #{order.id}",
+                        order=order
+                        )
+
 
             messages.success(request, "Order placed successfully!")
             del request.session["selected_address_id"]
@@ -1105,6 +1163,7 @@ def get_razorpay_order_details(request, order_id):
     })
     
 
+#only using when payment failed
 @require_POST
 def cancel_razorpay_order(request):
     if request.method=='POST':
@@ -1209,6 +1268,19 @@ def orders(request):
         if action == "cancel":
             if order_item.status in ["pending", "confirmed"]:
                 order_item.status = "cancelled"
+                
+                #refund to wallet on cancellation
+                if order.order_payment == 'wallet' or (order.order_payment == 'razorpay' and order.razorpay_payment_status == 'paid'):
+                    user_wallet = get_object_or_404(Wallet, user=request.user)
+                    WalletTransaction.objects.create(
+                        wallet=user_wallet,
+                        amount=order_item.sub_total(),
+                        transaction_type='credit',
+                        transaction_purpose='refund',
+                        description = f"Refund for {order_item}",
+                        order=order
+                        )
+                    
                 variant = order_item.product_variant
                 variant.stock += order_item.quantity
                 variant.save()
@@ -1325,3 +1397,16 @@ def toggle_wishlist(request):
             {"success": True, "action": "added", "message": "Item added to wishlist."}
         )
     return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
+
+
+@login_required(login_url="login")
+@customer_required
+def wallet(request):
+    user_wallet, created = Wallet.objects.get_or_create(user=request.user)
+    transactions = WalletTransaction.objects.filter(wallet=user_wallet).order_by('-created_at')
+    
+    context = {
+        'wallet': user_wallet,
+        'transactions': transactions,
+    }
+    return render(request, "store/wallet.html", context)

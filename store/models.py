@@ -6,6 +6,8 @@ from django.contrib.auth.models import (
 )
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from decimal import Decimal
 
 
 # Custom User Manager
@@ -306,3 +308,49 @@ class OrderItem(models.Model):
         return (
             f"{self.quantity} x {self.product_variant.name} in Order #{self.order.id}"
         )
+
+
+class Wallet(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='wallet')
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.email}'s Wallet - Balance: {self.balance}"
+
+class WalletTransaction(models.Model):
+    TRANSACTION_TYPE_CHOICES = [
+        ('credit', 'Credit'),
+        ('debit', 'Debit'),
+    ]
+    
+    TRANSACTION_PURPOSE_CHOICES= [
+        ('add', 'Add'),
+        ('withdraw', 'Withdraw'),
+        ('purchase', 'Purchase'),
+        ('refund', 'Refund')
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPE_CHOICES)
+    transaction_purpose = models.CharField(max_length=20, choices=TRANSACTION_PURPOSE_CHOICES)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='wallet_transactions')
+
+    def __str__(self):
+        return f"{self.transaction_type.capitalize()} of {self.amount} for {self.wallet.user.email}"
+
+    def save(self, *args, **kwargs):
+        if self.transaction_type == 'credit':
+            self.wallet.balance += self.amount
+        elif self.transaction_type == 'debit':
+            if self.wallet.balance >= self.amount:
+                self.wallet.balance -= self.amount
+            else:
+                raise ValueError("Insufficient funds in the wallet")
+        
+        self.wallet.save()
+        super().save(*args, **kwargs)

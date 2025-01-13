@@ -612,6 +612,19 @@ def order_view(request, order_id):
             if new_status == "cancelled":
                 variant = ProductVariant.objects.get(id=order_item.product_variant.id)
                 variant.stock += order_item.quantity
+                
+                #Refund to customer wallet on cancellation
+                if order_item.order.order_payment == 'wallet' or (order_item.order.order_payment == 'razorpay' and order_item.order.razorpay_payment_status == 'paid'):
+                    customer_wallet, created = Wallet.objects.get_or_create(user=order_item.order.user.id)
+                    WalletTransaction.objects.create(
+                        wallet=customer_wallet,
+                        amount=order_item.sub_total(),
+                        transaction_type='credit',
+                        transaction_purpose='refund',
+                        description = f"Refund for {order_item}",
+                        order=order_item.order
+                        )
+                    
                 variant.save()
             order_item.save()
             messages.success(request, "Order item status updated successfully.")
