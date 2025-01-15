@@ -27,4 +27,9 @@ urlpatterns = [
     path('orders/', views.orders, name='orders'),
     path('order/<int:order_id>/', views.order_view, name='order_view'),
     
+    path('offers/', views.offers, name='offers'),
+    path('edit-offer/', views.edit_offer, name='edit_offer'),
+    path('get-offer-details/', views.get_offer_details, name='get_offer_details'),
+    path('toggle-offer-status/', views.toggle_offer_status, name='toggle_offer_status'),
+    
 ]

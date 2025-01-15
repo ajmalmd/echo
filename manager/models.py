@@ -1,6 +1,9 @@
 from django.db import models
 from store.models import User
 from cloudinary.models import CloudinaryField  # Cloudinary image field
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 
 # Brand Model
@@ -120,3 +123,84 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product_variant.name}"
+
+
+# Base Offer Model
+class Offer(models.Model):
+    OFFER_TYPE_CHOICES = [
+        ('product', 'Product Offer'),
+        ('brand', 'Brand Offer'),
+        # ('referral', 'Referral Offer'),
+    ]
+
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    offer_type = models.CharField(max_length=20, choices=OFFER_TYPE_CHOICES)
+    discount_type = models.CharField(max_length=10, choices=[('percentage', 'Percentage'), ('fixed', 'Fixed Amount')])
+    discount_value = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    max_usage_limit = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_offers', blank=True, null=True)
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='brand_offers', blank=True, null=True)
+
+    def clean(self):
+        if self.end_date <= self.start_date:
+            raise ValidationError("End date must be after start date.")
+
+    def __str__(self):
+        return self.name
+
+# Coupon Model
+class Coupon(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField()
+    discount_type = models.CharField(max_length=10, choices=[('percentage', 'Percentage'), ('fixed', 'Fixed Amount')])
+    discount_value = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    min_purchase_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    applied_to = models.CharField(max_length=50, choices=[('products', 'Products'), ('categories', 'Categories'), ('orders', 'Orders')])
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+    usage_limit = models.PositiveIntegerField(default=1)
+    times_used = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        if self.end_date <= self.start_date:
+            raise ValidationError("End date must be after start date.")
+
+    def __str__(self):
+        return self.code
+
+
+# Coupon Usage Model
+class CouponUsage(models.Model):
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name='usages')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    used_at = models.DateTimeField(auto_now_add=True)
+    order = models.ForeignKey('store.Order', on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('applied', 'Applied'), ('redeemed', 'Redeemed'), ('failed', 'Failed')])
+
+    class Meta:
+        unique_together = ('coupon', 'user', 'order')
+
+    def __str__(self):
+        return f"{self.user.email} used {self.coupon.code}"
+
+
+# Referral Redemption Tracking Model
+# class ReferralRedemption(models.Model):
+#     referral_offer = models.ForeignKey(ReferralOffer, on_delete=models.CASCADE, related_name='redemptions')
+#     referrer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='referrer_redemptions')
+#     referee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='referee_redemptions')
+#     redeemed_at = models.DateTimeField(auto_now_add=True)
+#     status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('redeemed', 'Redeemed')])
+
+#     def __str__(self):
+#         return f"Referrer: {self.referrer.email}, Referee: {self.referee.email}"

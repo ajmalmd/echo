@@ -8,10 +8,15 @@ from .utils import paginate_items
 from .models import *
 from store.validators import *
 from store.models import *
+from datetime import datetime
+from django.utils.timezone import localtime
 from django.contrib import messages
 from django.db.models import Count
+import json
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import user_passes_test
+from django.views.decorators.csrf import csrf_exempt 
 from cloudinary.uploader import (
     upload as cloudinary_upload,
     destroy as cloudinary_delete,
@@ -636,3 +641,223 @@ def order_view(request, order_id):
             )
     context = {"order_items": order_items, "order_id": order_id, "statuses": statuses}
     return render(request, "manager/order_view.html", context)
+
+
+@user_passes_test(is_staff_user)
+@require_http_methods(["GET", "POST"])
+def offers(request):
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = request.POST
+
+        # Field validations
+        name = data.get('name')
+        description = data.get('description')
+        offer_type = data.get('offer_type')
+        discount_type = data.get('discount_type')
+        discount_value = data.get('discount_value')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        if not all([name, description, offer_type, discount_type, discount_value, start_date, end_date]):
+            return JsonResponse({"success": False, "message": "All fields are required."})
+
+        if discount_type not in ["fixed", "percentage"]:
+            return JsonResponse({"success": False, "message": "Invalid discount type. Must be 'fixed' or 'percentage'."})
+        
+        try:
+            validate_product_name(name)
+        except ValidationError as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+        if Offer.objects.filter(name=name).exists():
+            return JsonResponse({"success": False, "message": "Offer with this name already exists."})
+
+        try:
+            discount_value = Decimal(discount_value)
+            if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+                return JsonResponse({"success": False, "message": "Percentage discount must be between 0 and 100."})
+        except (ValueError, Decimal.InvalidOperation):
+            return JsonResponse({"success": False, "message": "Invalid discount value."})
+
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            today = now().date()
+
+            if start_date < today:
+                return JsonResponse({"success": False, "message": "Start date must be today or later."})
+            if end_date < start_date:
+                return JsonResponse({"success": False, "message": "End date must be after the start date."})
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD."})
+
+        offer = Offer(
+            name=name,
+            description=description,
+            offer_type=offer_type,
+            discount_type=discount_type,
+            discount_value=discount_value,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        if offer.offer_type == 'product':
+            offer.product_id = data.get('product')
+        elif offer.offer_type == 'brand':
+            offer.brand_id = data.get('brand')
+
+        try:
+            offer.save()
+            messages.success(request, "Offer added successfully.")
+            return JsonResponse({"success": True, "message": "Offer added successfully."})
+        except ValidationError as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+    products = Product.objects.filter(is_active=True, brand__is_active=True)
+    brands = Brand.objects.filter(is_active=True)
+    offers = Offer.objects.all().order_by('-created_at')
+    page_obj = paginate_items(request, offers, per_page=10)
+    context = {
+        "brands": brands,
+        "products": products,
+        "page_obj": page_obj
+    }
+    return render(request, "manager/offers.html", context)
+
+
+@user_passes_test(is_staff_user)
+@require_http_methods(["POST"])
+def edit_offer(request):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = request.POST
+
+        offer_id = data.get('offer_id')
+        name = data.get('name')
+        description = data.get('description')
+        offer_type = data.get('offer_type')
+        discount_type = data.get('discount_type')
+        discount_value = data.get('discount_value')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        offer = get_object_or_404(Offer, id=offer_id)
+
+        # Validate mandatory fields
+        if not all([name, description, offer_type, discount_type, discount_value, start_date, end_date]):
+            return JsonResponse({"success": False, "message": "All fields are required."})
+
+        # Validate discount type
+        if discount_type not in ["fixed", "percentage"]:
+            return JsonResponse({"success": False, "message": "Invalid discount type. Must be 'fixed' or 'percentage'."})
+        
+        try:
+            validate_product_name(name)
+        except ValidationError as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+        # Check if a different offer already has this name
+        if Offer.objects.filter(name=name).exclude(id=offer_id).exists():
+            return JsonResponse({"success": False, "message": "Offer with this name already exists."})
+
+        # Validate discount value
+        try:
+            discount_value = Decimal(discount_value)
+            if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+                return JsonResponse({"success": False, "message": "Percentage discount must be between 0 and 100."})
+        except (ValueError, Decimal.InvalidOperation):
+            return JsonResponse({"success": False, "message": "Invalid discount value."})
+
+        # Validate start and end dates
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            today = now().date()  # Convert to date for consistent comparison
+
+            # Determine valid range for start date based on existing start date
+            if offer.start_date < today:
+                # Existing start date is before today
+                if start_date < today or start_date > end_date:
+                    return JsonResponse({
+                        "success": False,
+                        "message": "Start date must be between today and the end date."
+                    })
+            else:
+                # Existing start date is today or later
+                if start_date < offer.start_date or start_date > end_date:
+                    return JsonResponse({
+                        "success": False,
+                        "message": f"Start date must be between {offer.start_date} and the end date."
+                    })
+
+            # Ensure end date is valid
+            if end_date < start_date:
+                return JsonResponse({
+                    "success": False,
+                    "message": "End date must be after the start date."
+                })
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD."})
+
+
+        offer.name = name
+        offer.description = description
+        offer.offer_type = offer_type
+        offer.discount_type = discount_type
+        offer.discount_value = discount_value
+        offer.start_date = start_date
+        offer.end_date = end_date
+
+        if offer.offer_type == 'product':
+            offer.product_id = data.get('product')
+            offer.brand = None
+        elif offer.offer_type == 'brand':
+            offer.brand_id = data.get('brand')
+            offer.product = None
+
+        try:
+            offer.save()
+            messages.success(request, "Offer updated successfully.")
+            return JsonResponse({"success": True, "message": "Offer updated successfully."})
+        except ValidationError as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+    return JsonResponse({"success": False, "message": "Invalid request method"})
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def get_offer_details(request):
+    data = json.loads(request.body)
+    offer_id=data.get('offer_id')
+    offer = get_object_or_404(Offer, id=offer_id)
+
+    data = {
+        "id": offer.id,
+        "name": offer.name,
+        "description": offer.description,
+        "offer_type": offer.offer_type,
+        "discount_type": offer.discount_type,
+        "discount_value": str(offer.discount_value),
+        "start_date": localtime(offer.start_date).strftime('%Y-%m-%d'),
+        "end_date": localtime(offer.end_date).strftime('%Y-%m-%d'),
+        "is_active": offer.is_active,
+    }
+
+    if offer.offer_type == 'product':
+        data['product_id'] = offer.product_id
+    elif offer.offer_type == 'brand':
+        data['brand_id'] = offer.brand_id
+
+    return JsonResponse(data)
+
+@user_passes_test(is_staff_user)
+@csrf_exempt
+def toggle_offer_status(request):
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = json.loads(request.body)
+        offer_id = data.get('offer_id')
+        offer = get_object_or_404(Offer, id=offer_id)
+        offer.is_active = not offer.is_active
+        offer.save()
+        return JsonResponse({"success": True, "offer_status": f"{'active' if offer.is_active else 'inactive'}", "message": f"Offer status changed to {'active' if offer.is_active else 'inactive'}."})
+    else:
+        return JsonResponse({"success": False, "message": "Invalid Request."})

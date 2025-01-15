@@ -14,7 +14,7 @@ def is_valid_email(email):
 # name validation
 def is_valid_name(name):
     """
-    Validate name: only alphabets and spaces, 2-50 characters.
+    Validate name: only alphabets and spaces, 2-30 characters.
     Reject names consisting only of spaces.
     """
     name = name.strip()  # Remove leading and trailing spaces
