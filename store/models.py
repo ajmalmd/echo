@@ -166,7 +166,7 @@ class CartItem(models.Model):
 
             # Calculate the proportional discount for this cart item
             proportional_discount = (self.discounted_price() / total_cart_price) * max_coupon_discount
-            return proportional_discount
+            return round(proportional_discount,2)
 
         return 0
 

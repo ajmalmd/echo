@@ -1,60 +1,62 @@
 {% extends 'store/base.html' %}
 {% load custom_filters %}
-
-{% block title %}
-  Cart - Echo
-{% endblock %}
-
+{% block title %}Cart - Echo{% endblock %}
 {% block content %}
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-regular font-ubuntu mb-8">Bag</h1>
     <div class="flex flex-col md:flex-row gap-8">
       <div class="w-full md:w-3/4" id="cart-items">
         {% if cart_items %}
-        {% csrf_token %}
+          {% csrf_token %}
           {% for item in cart_items %}
-            <div class="flex items-start border rounded-lg p-4 mb-4 bg-white relative group" data-item-id="{{ item.product_variant.id }}">
+            <div class="flex items-start border rounded-lg p-4 mb-4 bg-white relative group"
+                 data-item-id="{{ item.product_variant.id }}">
               <!-- Close Button -->
               <button class="absolute top-2 right-2 text-gray-400 hover:text-red-600 remove-item">
                 <i class="fas fa-times"></i>
               </button>
-
               <!-- Product Image -->
               <div class="flex-shrink-0 w-24 h-24 bg-gray-50 rounded-md overflow-hidden">
-                <img src="{{ item.product_variant.images.first.image_path.url }}" alt="{{ item.product_variant.name }}" class="w-full h-full object-contain" />
+                <img src="{{ item.product_variant.images.first.image_path.url }}"
+                     alt="{{ item.product_variant.name }}"
+                     class="w-full h-full object-contain" />
               </div>
-
               <!-- Product Details -->
               <div class="ml-4 flex-grow">
-                <h1 class="text-lg font-semibold text-gray-900">{{ item.product_variant.product.name }} - {{ item.product_variant.name }}</h1>
-
+                <h1 class="text-lg font-semibold text-gray-900">
+                  {{ item.product_variant.product.name }} - {{ item.product_variant.name }}
+                </h1>
                 <!-- Quantity Selectors -->
                 <div class="flex items-center gap-2 mt-3">
                   <div class="flex items-center gap-2">
                     {% if not item.product_variant.product.brand.is_active or not item.product_variant.product.is_active or not item.product_variant.is_active %}
                       <span class="text-sm text-red-500">Product not available</span>
-                      {% else %}
+                    {% else %}
                       <span class="text-sm text-gray-600">Qty:</span>
                       <select class="border rounded px-2 py-1 text-sm quantity-select">
                         {% with max_qty=item.product_variant.stock %}
                           {% if max_qty > 3 %}
                             {% with max_qty=3 %}
                               {% for i in "123"|make_list %}
-                                <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
+                                <option value="{{ forloop.counter }}"
+                                        {% if item.quantity == forloop.counter %}selected{% endif %}>
                                   {{ forloop.counter }}
                                 </option>
                               {% endfor %}
                             {% endwith %}
                           {% else %}
                             {% for i in max_qty|ljust:max_qty|make_list %}
-                              <option value="{{ forloop.counter }}" {% if item.quantity == forloop.counter %}selected{% endif %}>
+                              <option value="{{ forloop.counter }}"
+                                      {% if item.quantity == forloop.counter %}selected{% endif %}>
                                 {{ forloop.counter }}
                               </option>
                             {% endfor %}
                           {% endif %}
                         {% endwith %}
                       </select>
-                      {% if item.product_variant.stock < 3%}<span class="text-sm text-orange-500">{{ item.product_variant.stock }} left</span>{% endif %}
+                      {% if item.product_variant.stock < 3 %}
+                        <span class="text-sm text-orange-500">{{ item.product_variant.stock }} left</span>
+                      {% endif %}
                     {% endif %}
                   </div>
                 </div>
@@ -65,18 +67,18 @@
                     <span class="text-sm text-gray-400 line-through item-old-price">₹{{ item.product_variant.price|multiply:item.quantity|floatformat:2 }}</span>
                     <p class="text-sm text-red-600 item-discount">
                       {% if item.product_variant.get_best_offer.discount_type == 'percentage' %}
-                        {{item.product_variant.get_best_offer.discount_value}}% OFF
+                        {{ item.product_variant.get_best_offer.discount_value }}% OFF
                       {% else %}
-                        ₹{{item.product_variant.get_best_offer.discount_value|multiply:item.quantity|floatformat:2}} OFF
+                        ₹{{ item.product_variant.get_best_offer.discount_value|multiply:item.quantity|floatformat:2 }} OFF
                       {% endif %}
                     </p>
                   {% elif item.product_variant.is_discount_active %}
                     <span class="text-sm text-gray-400 line-through item-old-price">₹{{ item.product_variant.price|multiply:item.quantity|floatformat:2 }}</span>
                     <p class="text-sm text-red-600 item-discount">
                       {% if item.product_variant.discount_type == 'percentage' %}
-                        {{item.product_variant.discount_value}}% OFF
+                        {{ item.product_variant.discount_value }}% OFF
                       {% else %}
-                        ₹{{item.product_variant.discount_value|multiply:item.quantity|floatformat:2}} OFF
+                        ₹{{ item.product_variant.discount_value|multiply:item.quantity|floatformat:2 }} OFF
                       {% endif %}
                     </p>
                   {% endif %}
@@ -87,145 +89,322 @@
         {% else %}
           <div class="text-center py-8">
             <p class="text-gray-500">Your cart is empty</p>
-            <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
+            <a href="{% url 'store_products' %}"
+               class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
           </div>
         {% endif %}
       </div>
-      
-      <div class="w-full md:w-1/4 bg-white border rounded-lg p-6 h-fit sticky top-4">
-        <h2 class="text-xl font-semibold mb-4">Cart Summary</h2>
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Total MRP:</span>
-            <span>₹<span id="total-mrp">{{ total_mrp|floatformat:2 }}</span></span>
+      <div class="w-full md:w-1/4 space-y-4">
+        <div class="coupon-container mb-4">
+          <div id="apply-coupon" class="bg-white border rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Apply Coupon</h2>
+            <form id="coupon-form" class="space-y-4">
+              {% csrf_token %}
+              <input type="text"
+                     name="coupon_code"
+                     id="coupon-code"
+                     placeholder="Enter coupon code"
+                     class="w-full px-3 py-2 border rounded-md">
+              <button type="submit"
+                      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
+                Apply Coupon
+              </button>
+            </form>
+            <div id="coupon-message" class="mt-2 text-sm"></div>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Discount on MRP</span>
-            <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Shipping:</span>
-            <span>FREE</span>
-          </div>
-          <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
-            <span>Total:</span>
-            <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
+          <div id="applied-coupon" class="bg-white border rounded-lg p-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Applied Coupon</h2>
+            <p id="applied-coupon-code" class="font-medium"></p>
+            <p id="applied-coupon-discount" class="text-green-600"></p>
+            <button id="remove-coupon" class="mt-2 text-red-600 hover:text-red-800">Remove Coupon</button>
           </div>
         </div>
-        <form action="" method="post">
-          {% csrf_token %}
-          <input type="text" name="select_address" value="True" hidden />
-          <button type="submit" class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
-            PLACE ORDER
-          </button>
-        </form>
+        <div class="bg-white border rounded-lg p-6 h-fit sticky top-4">
+          <h2 class="text-xl font-semibold mb-4">Cart Summary</h2>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Total MRP:</span>
+              <span>₹<span id="total-mrp">{{ total_mrp|floatformat:2 }}</span></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Discount on MRP</span>
+              <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Coupon Discount</span>
+              <span class="text-green-400">₹<span id="coupon-discount">0.00</span></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Shipping:</span>
+              <span>FREE</span>
+            </div>
+            <div class="flex justify-between font-semibold text-lg border-t pt-4 mt-4">
+              <span>Total:</span>
+              <span>₹<span id="total">{{ total|floatformat:2 }}</span></span>
+            </div>
+          </div>
+          <button onclick="placeOrder()"
+                    class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
+              PLACE ORDER
+            </button>
+          {% comment %} <form action="" method="post">
+            {% csrf_token %}
+            <input type="text" name="select_address" value="True" hidden />
+            <button type="submit"
+                    class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
+              PLACE ORDER
+            </button>
+          </form> {% endcomment %}
+        </div>
       </div>
     </div>
   </div>
 {% endblock %}
-
 {% block script %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Handle quantity changes
-    document.querySelectorAll('.quantity-select').forEach(select => {
-        select.addEventListener('change', function() {
-            const itemContainer = this.closest('[data-item-id]');
-            const variantId = itemContainer.dataset.itemId;
-            
-            updateCart('update', variantId, this.value);
+        // Handle quantity changes
+        document.querySelectorAll('.quantity-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const itemContainer = this.closest('[data-item-id]');
+                const variantId = itemContainer.dataset.itemId;
+                
+                updateCart('update', variantId, this.value);
+            });
         });
-    });
 
-    // Handle remove item
-    document.querySelectorAll('.remove-item').forEach(button => {
-        button.addEventListener('click', function() {
-            const itemContainer = this.closest('[data-item-id]');
-            const variantId = itemContainer.dataset.itemId;
-            
-            updateCart('remove', variantId, 0);
-            itemContainer.remove();
+        // Handle remove item
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemContainer = this.closest('[data-item-id]');
+                const variantId = itemContainer.dataset.itemId;
+                
+                updateCart('remove', variantId, 0);
+                itemContainer.remove();
+            });
         });
-    });
 
-    function updateCart(action, variantId, quantity) {
-        const formData = new FormData();
-        formData.append('action', action);
-        formData.append('variant_id', variantId);
-        formData.append('quantity', quantity);
+        function updateCart(action, variantId, quantity) {
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('variant_id', variantId);
+            formData.append('quantity', quantity);
 
-        fetch('{% url "cart" %}', {
+            fetch('{% url "cart" %}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success){
+                  Swal.fire({
+                    icon: 'success',
+                    title: data.message,
+                    showConfirmButton: false,
+                    timer: 2000
+                  });
+
+                  // Update item prices
+                  if (action === 'update') {
+                    const itemContainer = document.querySelector(`[data-item-id="${variantId}"]`);
+                    const priceElement = itemContainer.querySelector('.item-price');
+                    const oldPriceElement = itemContainer.querySelector('.item-old-price');
+                    const discountElement = itemContainer.querySelector('.item-discount');
+
+                    if (priceElement) {
+                      const totalPrice = (parseFloat(data.item_price) * parseInt(quantity)).toFixed(2);
+                      priceElement.textContent = isNaN(totalPrice) ? '₹0.00' : `₹${totalPrice}`;
+                    }
+                    if (oldPriceElement) {
+                      const totalOldPrice = (parseFloat(data.item_old_price) * parseInt(quantity)).toFixed(2);
+                      oldPriceElement.textContent = isNaN(totalOldPrice) ? '₹0.00' : `₹${totalOldPrice}`;
+                    }
+                    if (discountElement) {
+                      if (data.item_discount_type === 'fixed') {
+                        const totalDiscount = (parseFloat(data.item_discount_value) * parseInt(quantity)).toFixed(2);
+                        discountElement.textContent = isNaN(totalDiscount) ? '₹0.00 OFF' : `₹${totalDiscount} OFF`;
+                      } else {
+                        discountElement.textContent = `${data.item_discount_value}% OFF`;
+                      }
+                    }
+                  }
+                  // Update coupon status
+                  if (data.coupon_applied) {
+                      document.querySelector('#apply-coupon').classList.add('hidden');
+                      document.querySelector('#applied-coupon').classList.remove('hidden');
+                      document.getElementById('applied-coupon-code').textContent = `Code: ${data.coupon_code}`;
+                      document.getElementById('applied-coupon-discount').textContent = `Discount: ₹${data.coupon_discount}`;
+                      document.getElementById('coupon-discount').textContent = data.coupon_discount;
+                  } else {
+                      document.querySelector('#apply-coupon').classList.remove('hidden');
+                      document.querySelector('#applied-coupon').classList.add('hidden');
+                      document.getElementById('coupon-discount').textContent = '0.00';
+                      updateTotal();
+                      document.getElementById('coupon-code').value = '';
+                  }
+
+                  // Update cart totals
+                  document.getElementById('total').textContent = parseFloat(data.total).toFixed(2);
+                  document.getElementById('total-mrp').textContent = parseFloat(data.total_mrp).toFixed(2);
+                  document.getElementById('total-discount').textContent = parseFloat(data.total_discount).toFixed(2);
+                
+                // If cart is empty, show empty cart message
+                if (data.item_count === 0) {
+                    document.getElementById('cart-items').innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-gray-500">Your cart is empty</p>
+                            <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">
+                                Continue Shopping
+                            </a>
+                        </div>
+                    `;
+                }
+                } else {
+                  Swal.fire({
+                    icon: 'error',
+                    title: data.message,
+                    showConfirmButton: false,
+                    timer: 2000
+                  });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        // Coupon application
+        const couponForm = document.getElementById('coupon-form');
+        const couponMessage = document.getElementById('coupon-message');
+        const applyCouponDiv = document.getElementById('apply-coupon');
+        const appliedCouponDiv = document.getElementById('applied-coupon');
+        const appliedCouponCode = document.getElementById('applied-coupon-code');
+        const appliedCouponDiscount = document.getElementById('applied-coupon-discount');
+        const removeCouponButton = document.getElementById('remove-coupon');
+        const couponDiscountElement = document.getElementById('coupon-discount');
+
+        couponForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const couponCode = document.getElementById('coupon-code').value;
+          applyCoupon(couponCode);
+        });
+
+        removeCouponButton.addEventListener('click', function() {
+          removeCoupon();
+        });
+
+        function applyCoupon(couponCode) {
+          fetch('{% url "apply_coupon" %}', {
             method: 'POST',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
             },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success){
+            body: JSON.stringify({ coupon_code: couponCode }),
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
               Swal.fire({
                 icon: 'success',
-                title: data.message,
+                title: 'Coupon Applied',
+                text: `Discount: ₹${data.discount}`,
                 showConfirmButton: false,
                 timer: 2000
               });
-
-              // Update item prices
-              if (action === 'update') {
-                const itemContainer = document.querySelector(`[data-item-id="${variantId}"]`);
-                const priceElement = itemContainer.querySelector('.item-price');
-                const oldPriceElement = itemContainer.querySelector('.item-old-price');
-                const discountElement = itemContainer.querySelector('.item-discount');
-
-                if (priceElement) {
-                  const totalPrice = (parseFloat(data.item_price) * parseInt(quantity)).toFixed(2);
-                  priceElement.textContent = isNaN(totalPrice) ? '₹0.00' : `₹${totalPrice}`;
-                }
-                if (oldPriceElement) {
-                  const totalOldPrice = (parseFloat(data.item_old_price) * parseInt(quantity)).toFixed(2);
-                  oldPriceElement.textContent = isNaN(totalOldPrice) ? '₹0.00' : `₹${totalOldPrice}`;
-                }
-                if (discountElement) {
-                  if (data.item_discount_type === 'fixed') {
-                    const totalDiscount = (parseFloat(data.item_discount_value) * parseInt(quantity)).toFixed(2);
-                    discountElement.textContent = isNaN(totalDiscount) ? '₹0.00 OFF' : `₹${totalDiscount} OFF`;
-                  } else {
-                    discountElement.textContent = `${data.item_discount_value}% OFF`;
-                  }
-                }
-              }
+              document.querySelector('#apply-coupon').classList.add('hidden');
+              document.querySelector('#applied-coupon').classList.remove('hidden');
+              appliedCouponCode.textContent = `Code: ${data.coupon_code}`;
+              appliedCouponDiscount.textContent = `Discount: ₹${data.discount}`;
+              couponDiscountElement.textContent = data.discount;
+              updateTotal();
+              couponMessage.textContent = '';
             } else {
-              Swal.fire({
-                icon: 'error',
-                title: data.message,
-                showConfirmButton: false,
-                timer: 2000
-              });
+              couponMessage.textContent = data.message;
+              couponMessage.classList.add('text-red-600');
             }
-            // Update cart totals
-            document.getElementById('total').textContent = parseFloat(data.total).toFixed(2);
-            document.getElementById('total-mrp').textContent = parseFloat(data.total_mrp).toFixed(2);
-            document.getElementById('total-discount').textContent = parseFloat(data.total_discount).toFixed(2);
-            
-            // If cart is empty, show empty cart message
-            if (data.item_count === 0) {
-                document.getElementById('cart-items').innerHTML = `
-                    <div class="text-center py-8">
-                        <p class="text-gray-500">Your cart is empty</p>
-                        <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">
-                            Continue Shopping
-                        </a>
-                    </div>
-                `;
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            couponMessage.textContent = 'An error occurred. Please try again.';
+            couponMessage.classList.add('text-red-600');
+          });
+        }
+
+        function removeCoupon() {
+          fetch('{% url "remove_coupon" %}', {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              document.querySelector('#apply-coupon').classList.remove('hidden');
+              document.querySelector('#applied-coupon').classList.add('hidden');
+              couponDiscountElement.textContent = '0.00';
+              updateTotal();
+              document.getElementById('coupon-code').value = '';
+            } else {
+              couponMessage.textContent = data.message;
+              couponMessage.classList.add('text-red-600');
             }
-        })
-        .catch(error => console.error('Error:', error));
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            couponMessage.textContent = 'An error occurred. Please try again.';
+            couponMessage.classList.add('text-red-600');
+          });
+        }
+
+        function updateTotal() {
+          const totalMrp = parseFloat(document.getElementById('total-mrp').textContent);
+          const totalDiscount = parseFloat(document.getElementById('total-discount').textContent);
+          const couponDiscount = parseFloat(document.getElementById('coupon-discount').textContent);
+          const newTotal = totalMrp - totalDiscount - couponDiscount;
+          document.getElementById('total').textContent = newTotal.toFixed(2);
+        }
+    });
+    function placeOrder() {
+      
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const code = document.getElementById('applied-coupon-code').innerText;
+      const couponApplied = !document.querySelector('#applied-coupon').classList.contains('hidden');
+      fetch('{% url "checkout" %}', {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ coupon_applied: couponApplied }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = '{% url "checkout_address" %}';
+        }
+        else {
+          location.reload()
+        }
+      })
+      .catch(error => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          message: error,
+          showConfirmButton: false,
+          timer: 2000,
+        });
+      });
     }
-});
-</script>
+  </script>
 {% endblock %}
 

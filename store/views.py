@@ -707,25 +707,6 @@ def cart(request):
         "product_variant", "product_variant__product"
     ).all()
 
-    # cart validation to place order
-    if request.method == "POST":
-        is_place_order = request.POST.get("select_address")
-        if is_place_order:
-            if cart_items.count() == 0:
-                messages.error(request, "Your cart is empty.")
-                return redirect("cart")
-            for item in cart_items:
-                if (
-                    item.product_variant.stock < item.quantity
-                    or item.quantity > 3
-                    or not item.product_variant.is_active
-                    or not item.product_variant.product.is_active
-                    or not item.product_variant.product.brand.is_active
-                ):
-                    messages.error(request, "Product not available")
-                    return redirect("cart")
-            return redirect("checkout_address")
-
     # cart actions
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         if request.method == "POST":
@@ -757,6 +738,11 @@ def cart(request):
 
             total_mrp = round(cart.total_price(), 2)
             total_discounted = round(cart.total_discounted_price(), 2)
+            if cart.applied_coupon:
+                cart_total = cart.total_discounted_price()
+                if cart_total < cart.applied_coupon.min_purchase_amount:
+                    cart.applied_coupon = None
+                    cart.save()
             return JsonResponse(
                 {
                     "success": True,
@@ -770,11 +756,20 @@ def cart(request):
                     "item_old_price": variant.price,
                     "item_discount_type": variant.discount_type,
                     "item_discount_value": variant.discount_value,
+                    "coupon_applied": cart.applied_coupon is not None,
+                    "coupon_code": cart.applied_coupon.code if cart.applied_coupon else None,
+                    "coupon_discount": str(cart.total_coupon_discount()) if cart.applied_coupon else '0.00',
                 }
             )
 
     total_mrp = round(cart.total_price(), 2)
     total_discounted = round(cart.total_discounted_price(), 2)
+    # Check if the applied coupon is still valid
+    if cart.applied_coupon:
+        cart_total = cart.total_discounted_price()
+        if cart_total < cart.applied_coupon.min_purchase_amount:
+            cart.applied_coupon = None
+            cart.save()
     context = {
         "cart_items": cart_items,
         "total": total_discounted,
@@ -782,6 +777,105 @@ def cart(request):
         "total_discount": total_mrp - total_discounted,
     }
     return render(request, "store/cart.html", context)
+
+@login_required(login_url="login")
+@customer_required
+def checkout(request):
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.select_related(
+        "product_variant", "product_variant__product"
+    ).all()
+    
+    if (request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest"):
+        data = json.loads(request.body)
+        coupon_applied = data.get('coupon_applied')
+        
+        if cart_items.count() == 0:
+            messages.error(request, "Your cart is empty.")
+            return JsonResponse({'success': False})
+        for item in cart_items:
+            if (
+                item.product_variant.stock < item.quantity
+                or item.quantity > 3
+                or not item.product_variant.is_active
+                or not item.product_variant.product.is_active
+                or not item.product_variant.product.brand.is_active
+            ):
+                messages.error(request, "Product not available")
+                return JsonResponse({'success': False})
+            
+        if coupon_applied:
+            return JsonResponse({'success': True})
+        cart.applied_coupon = None
+        cart.save()
+        return JsonResponse({'success': True})
+        
+    return redirect("checkout_address")
+    
+
+@login_required(login_url="login")
+@customer_required
+def apply_coupon(request):
+    if (request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest"):
+        data = json.loads(request.body)
+        coupon_code = data.get('coupon_code')
+        
+        try:
+            coupon = Coupon.objects.get(code=coupon_code, is_active=True)
+            cart = Cart.objects.get(user=request.user)
+            
+            # Check if the coupon is valid
+            if coupon.start_date <= timezone.now().date() <= coupon.end_date:
+                if coupon.min_purchase_amount <= cart.total_discounted_price():
+                    
+                    # Save the applied coupon to the cart
+                    cart.applied_coupon = coupon
+                    cart.save()
+                    total_coupon_discount = cart.total_coupon_discount()
+                    
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'coupon_code': coupon.code,
+                        'discount': str(total_coupon_discount),
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Minimum purchase amount of ₹{coupon.min_purchase_amount} required.',
+                    })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'This coupon has expired.',
+                })
+        except Coupon.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid coupon code.',
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request.',
+    })
+
+@login_required(login_url="login")
+@customer_required
+def remove_coupon(request):
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        cart = Cart.objects.get(user=request.user)
+        cart.applied_coupon = None
+        cart.save()
+        
+        return JsonResponse({
+            'success': True,
+        })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request.',
+    })
 
 
 @login_required(login_url="login")
@@ -1410,3 +1504,4 @@ def wallet(request):
         'transactions': transactions,
     }
     return render(request, "store/wallet.html", context)
+

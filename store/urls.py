@@ -26,7 +26,12 @@ urlpatterns = [
     path("wishlist/", views.wishlist, name="wishlist"),
     path("toggle-wishlist", views.toggle_wishlist, name="toggle_wishlist"),
     path("cart/", views.cart, name="cart"),
+    
+    path('cart/apply-coupon/', views.apply_coupon, name='apply_coupon'),
+    path('cart/remove-coupon/', views.remove_coupon, name='remove_coupon'),
+    
     path("add-to-cart/", views.add_to_cart, name="add_to_cart"),
+    path("checkout/", views.checkout, name="checkout"),
     path("checkout/address/", views.select_address, name="checkout_address"),
     path("checkout/payment/", views.checkout_payment, name="checkout_payment"),
     path('razorpay-payment-success/', views.razorpay_payment_success, name='razorpay_payment_success'),
