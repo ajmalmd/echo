@@ -832,6 +832,14 @@ def apply_coupon(request):
         
         try:
             coupon = Coupon.objects.get(code=coupon_code, is_active=True)
+            coupon_used = CouponUsage.objects.filter(coupon=coupon, user=request.user).first()
+            
+            if coupon_used:
+                return JsonResponse({
+                    'success': False,
+                    'message': "You already used this coupon",
+                })
+                
             cart = Cart.objects.get(user=request.user)
             
             # Check if the coupon is valid
