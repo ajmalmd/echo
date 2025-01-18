@@ -98,6 +98,25 @@
         <div class="coupon-container mb-4">
           <div id="apply-coupon" class="bg-white border rounded-lg p-6">
             <h2 class="text-xl font-semibold mb-4">Apply Coupon</h2>
+            
+            <!-- New coupon list container -->
+            <div class="mb-4">
+              <h3 class="text-lg font-medium mb-2">Available Coupons</h3>
+              <div class="h-40 overflow-y-auto border rounded-md p-2">
+                {% if coupons %}
+                  {% for coupon in coupons %}
+                    <div class="coupon-item mb-2 p-2 bg-gray-100 rounded-md">
+                      <p class="font-semibold border-dashed border-2 text-center bg-white">{{ coupon.code }}</p>
+                      <p class="text-sm text-gray-600">{{ coupon.description }}</p>
+                      <p class="text-xs text-gray-500">Min. Purchase: ₹{{ coupon.min_purchase_amount }}</p>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <p class="text-gray-500 text-center">No coupons available</p>
+                {% endif %}
+              </div>
+            </div>
+      
             <form id="coupon-form" class="space-y-4">
               {% csrf_token %}
               <input type="text"
@@ -106,7 +125,7 @@
                      placeholder="Enter coupon code"
                      class="w-full px-3 py-2 border rounded-md">
               <button type="submit"
-                      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
+                      class="w-full bg-gray-800 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-300">
                 Apply Coupon
               </button>
             </form>
@@ -130,7 +149,7 @@
               <span class="text-gray-600">Discount on MRP</span>
               <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
             </div>
-            <div class="flex justify-between">
+            <div id="coupon-discount-view" class="flex justify-between hidden">
               <span class="text-gray-600">Coupon Discount</span>
               <span class="text-green-400">₹<span id="coupon-discount">0.00</span></span>
             </div>
@@ -144,17 +163,9 @@
             </div>
           </div>
           <button onclick="placeOrder()"
-                    class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
-              PLACE ORDER
-            </button>
-          {% comment %} <form action="" method="post">
-            {% csrf_token %}
-            <input type="text" name="select_address" value="True" hidden />
-            <button type="submit"
-                    class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
-              PLACE ORDER
-            </button>
-          </form> {% endcomment %}
+                  class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg mt-6 hover:bg-gray-800 transition duration-300">
+            PLACE ORDER
+          </button>
         </div>
       </div>
     </div>
@@ -240,8 +251,10 @@
                       document.querySelector('#applied-coupon').classList.remove('hidden');
                       document.getElementById('applied-coupon-code').textContent = `Code: ${data.coupon_code}`;
                       document.getElementById('applied-coupon-discount').textContent = `Discount: ₹${data.coupon_discount}`;
+                      document.querySelector('#coupon-discount-view').classList.remove('hidden');
                       document.getElementById('coupon-discount').textContent = data.coupon_discount;
                   } else {
+                      document.querySelector('#coupon-discount-view').classList.add('hidden');
                       document.querySelector('#apply-coupon').classList.remove('hidden');
                       document.querySelector('#applied-coupon').classList.add('hidden');
                       document.getElementById('coupon-discount').textContent = '0.00';
@@ -318,6 +331,7 @@
               });
               document.querySelector('#apply-coupon').classList.add('hidden');
               document.querySelector('#applied-coupon').classList.remove('hidden');
+              document.querySelector('#coupon-discount-view').classList.remove('hidden');
               appliedCouponCode.textContent = `Code: ${data.coupon_code}`;
               appliedCouponDiscount.textContent = `Discount: ₹${data.discount}`;
               couponDiscountElement.textContent = data.discount;
@@ -349,6 +363,7 @@
             if (data.success) {
               document.querySelector('#apply-coupon').classList.remove('hidden');
               document.querySelector('#applied-coupon').classList.add('hidden');
+              document.querySelector('#coupon-discount-view').classList.add('hidden');
               couponDiscountElement.textContent = '0.00';
               updateTotal();
               document.getElementById('coupon-code').value = '';

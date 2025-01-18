@@ -706,6 +706,12 @@ def cart(request):
     cart_items = cart.items.select_related(
         "product_variant", "product_variant__product"
     ).all()
+    
+    user_available_coupons = Coupon.objects.filter(
+        is_active=True,
+        start_date__lte=now().date(),
+        end_date__gte=now().date()
+    ).exclude(usages__user=request.user)
 
     # cart actions
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -738,11 +744,14 @@ def cart(request):
 
             total_mrp = round(cart.total_price(), 2)
             total_discounted = round(cart.total_discounted_price(), 2)
+            
+            #removing coupon from cart on actions
             if cart.applied_coupon:
                 cart_total = cart.total_discounted_price()
                 if cart_total < cart.applied_coupon.min_purchase_amount:
                     cart.applied_coupon = None
                     cart.save()
+                    
             return JsonResponse(
                 {
                     "success": True,
@@ -775,6 +784,7 @@ def cart(request):
         "total": total_discounted,
         "total_mrp": total_mrp,
         "total_discount": total_mrp - total_discounted,
+        "coupons": user_available_coupons
     }
     return render(request, "store/cart.html", context)
 
