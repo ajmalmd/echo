@@ -32,4 +32,8 @@ urlpatterns = [
     path('get-offer-details/', views.get_offer_details, name='get_offer_details'),
     path('toggle-offer-status/', views.toggle_offer_status, name='toggle_offer_status'),
     
+    path('coupons/', views.coupons, name='coupons'),
+    path('edit-coupon/', views.edit_coupon, name='edit_coupon'),
+    path('get-coupon-details/', views.get_coupon_details, name='get_coupon_details'),
+    path('toggle-coupon-status/', views.toggle_coupon_status, name='toggle_coupon_status'),
 ]

@@ -92,14 +92,19 @@ class Wishlist(models.Model):
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="cart")
     created_at = models.DateTimeField(auto_now_add=True)
+    applied_coupon = models.ForeignKey('manager.Coupon', on_delete=models.SET_NULL, null=True, blank=True)
 
     def total_price(self):
         """Calculates the total price of all items in the cart."""
         return sum(item.total_price() for item in self.items.all())
 
     def total_discounted_price(self):
-        """Calculates the total discounted price for the cart."""
+        """Calculates the total discounted (offer/discount) price for the cart."""
         return sum(item.discounted_price() for item in self.items.all())
+    
+    def total_coupon_discount(self):
+        """Calculates the total coupon discount for the cart."""
+        return sum(item.coupon_discount() for item in self.items.all())
 
     def __str__(self):
         return f"Cart for {self.user.email}"
@@ -122,7 +127,7 @@ class CartItem(models.Model):
             or self.product_variant.stock <= 0
         ):
             return 0
-
+        
         return self.product_variant.price * self.quantity
 
     def discounted_price(self):
@@ -135,6 +140,36 @@ class CartItem(models.Model):
         ):
             return 0
         return self.product_variant.discounted_price() * self.quantity
+
+    
+    def coupon_discount(self):
+        """Calculates the coupon discount for this cart item."""
+        if self.cart.applied_coupon:
+            total_cart_price = self.cart.total_discounted_price()
+
+            # Avoid division by zero
+            if total_cart_price == 0:
+                return 0
+
+            coupon = self.cart.applied_coupon
+
+            # Calculate the maximum coupon discount
+            if coupon.discount_type == 'percentage':
+                if coupon.max_discount_amount:
+                    max_coupon_discount = min(total_cart_price * (coupon.discount_value / 100),coupon.max_discount_amount)
+                else:
+                    max_coupon_discount = total_cart_price * (coupon.discount_value / 100)
+            elif coupon.discount_type == 'fixed':
+                max_coupon_discount = min(total_cart_price, coupon.discount_value)
+            else:
+                max_coupon_discount = 0
+
+            # Calculate the proportional discount for this cart item
+            proportional_discount = (self.discounted_price() / total_cart_price) * max_coupon_discount
+            return proportional_discount
+
+        return 0
+
 
     def clean(self):
         """Validate stock availability."""
@@ -204,6 +239,7 @@ class Order(models.Model):
     total_price_after_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     order_payment = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cod")
     created_at = models.DateTimeField(auto_now_add=True)
+    applied_coupon = models.ForeignKey('manager.Coupon', on_delete=models.SET_NULL, null=True, blank=True)
 
     # Razorpay-specific fields
     razorpay_order_id = models.CharField(max_length=255, null=True, blank=True)
@@ -249,6 +285,10 @@ class Order(models.Model):
         elif any(status == "cancelled" for status in item_statuses):
             return "Partially Cancelled"
         return "Pending"
+    
+    def total_coupon_discount(self):
+        """Calculates the total coupon discount for the order."""
+        return sum(item.coupon_discount for item in self.items.all())
 
     def __str__(self):
         return f"Order #{self.id} on {self.created_at.strftime('%d-%m-%Y')}"
@@ -277,6 +317,7 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     price_after_discount = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
     )

@@ -61,8 +61,25 @@
       <div class="space-y-4 overflow-y-auto max-h-[calc(100vh-2rem)] no-scrollbar px-1"
            id="productInfo">
         <h1 class="text-xl sm:text-2xl font-bold">{{ brand.name }} {{ product.name }} - {{ variant.name }}</h1>
+        {% if variant.get_best_offer.name %}
+        <div class="bg-green-100 p-4 rounded-lg mb-4 inline-block">
+            <span class="text-md font-base text-gray-800">Offer</span>
+            <div class="mt-2">
+              <span class="text-green-600 font-semibold">{{ variant.get_best_offer.name }} :
+              {% if variant.get_best_offer.discount_type == 'percentage' %}
+                <span class="text-green-600 text-base">{{ variant.get_best_offer.discount_value }}% OFF</span>
+              {% elif variant.get_best_offer.discount_type == 'fixed' %}
+                <span class="text-green-600 text-base">₹ {{ variant.get_best_offer.discount_value }} OFF</span>
+              {% endif %}
+            </span>
+            </div>
+        </div>
+        {% endif %}
         <div class="text-lg sm:text-xl flex flex-wrap items-center gap-2">
-          {% if variant.is_discount_active and discounted_price %}
+          {% if variant.get_best_offer.name %}
+            <span class="text-black-500 font-semibold">₹ {{ discounted_price|floatformat:2 }}</span>
+            <span class="text-gray-500 line-through">₹ {{ variant.price }}</span>
+          {% elif variant.is_discount_active and discounted_price %}
             <span class="text-black-500 font-semibold">₹ {{ discounted_price|floatformat:2 }}</span>
             <span class="text-gray-500 line-through">₹ {{ variant.price }}</span>
             {% if variant.discount_type == 'percentage' %}
@@ -71,7 +88,7 @@
               <span class="text-green-600 text-base">(₹ {{ variant.discount_value }} OFF)</span>
             {% endif %}
           {% else %}
-            <span>₹ {{ variant.price }}</span>
+            <span class="text-black-500 font-semibold">₹ {{ variant.price }}</span>
           {% endif %}
         </div>
         <div class="flex items-center gap-1">
@@ -106,13 +123,13 @@
           <p class="text-red-500">Not Available</p>
         {% elif variant.stock %}
           <!-- Action Buttons -->
-          <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 bg-white py-2">
-            <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">
+          <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 py-2">
+            {% comment %} <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">
               BUY NOW
-            </button>
+            </button> {% endcomment %}
             <button id="add-to-cart"
                     data-variant-id="{{ variant.id }}"
-                    class="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">
+                    class=" bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">
               ADD TO CART
             </button>
           </div>

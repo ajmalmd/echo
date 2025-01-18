@@ -61,7 +61,16 @@
                 <!-- Price Details -->
                 <div class="flex items-center gap-2 mt-4">
                   <span class="text-lg font-semibold item-price">₹{{ item.product_variant.discounted_price|multiply:item.quantity|floatformat:2 }}</span>
-                  {% if item.product_variant.is_discount_active %}
+                  {% if item.product_variant.get_best_offer.name %}
+                    <span class="text-sm text-gray-400 line-through item-old-price">₹{{ item.product_variant.price|multiply:item.quantity|floatformat:2 }}</span>
+                    <p class="text-sm text-red-600 item-discount">
+                      {% if item.product_variant.get_best_offer.discount_type == 'percentage' %}
+                        {{item.product_variant.get_best_offer.discount_value}}% OFF
+                      {% else %}
+                        ₹{{item.product_variant.get_best_offer.discount_value|multiply:item.quantity|floatformat:2}} OFF
+                      {% endif %}
+                    </p>
+                  {% elif item.product_variant.is_discount_active %}
                     <span class="text-sm text-gray-400 line-through item-old-price">₹{{ item.product_variant.price|multiply:item.quantity|floatformat:2 }}</span>
                     <p class="text-sm text-red-600 item-discount">
                       {% if item.product_variant.discount_type == 'percentage' %}

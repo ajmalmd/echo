@@ -47,13 +47,9 @@
               <li>
                 <a href="{% url 'dashboard' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'dashboard' %}
-                    
                      text-white
-
                   {% else %}
-                    
                      text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">🏠</span> Dashboard
                 </a>
@@ -61,13 +57,9 @@
               <li>
                 <a href="{% url 'products' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'products' %}
-                    
                      text-white
-
                   {% else %}
-                    
                      text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">📦</span> Products
                 </a>
@@ -75,13 +67,9 @@
               <li>
                 <a href="{% url 'brands' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'brands' %}
-                    
                      text-white
-
                   {% else %}
-                    
                      text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">🏷️</span> Brands
                 </a>
@@ -89,13 +77,9 @@
               <li>
                 <a href="{% url 'users' %}"
                   class="flex items-center {% if request.resolver_match.url_name == 'users' %}
-                    
                      text-white
-
                   {% else %}
-                    
                      text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">👥</span> Users
                 </a>
@@ -109,60 +93,44 @@
                   {% endif %} hover:text-white">
                   <span class="mr-2">🛒</span> Orders
                 </a>
-              </li>
-              {% comment %}
+              </li>       
               <li>
-                <a href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}
-                    
+                <a href="{% url "offers" %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'offers' %}
                     text-white
-
                   {% else %}
-                    
                     text-gray-400
-
+                  {% endif %} hover:text-white">
+                  <span class="mr-2">🎁</span> Offers
+                </a>
+              </li>
+              <li>
+                <a href="{% url "coupons" %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'coupons' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
                   {% endif %} hover:text-white">
                   <span class="mr-2">🏷️</span> Coupons
                 </a>
               </li>
+              {% comment %}
               <li>
                 <a href="#"
                   class="flex items-center {% if request.resolver_match.url_name == 'connectivity' %}
-                    
                     text-white
-
                   {% else %}
-                    
                     text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">🔗</span> Connectivity
                 </a>
               </li>
               <li>
                 <a href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'offers' %}
-                    
-                    text-white
-
-                  {% else %}
-                    
-                    text-gray-400
-
-                  {% endif %} hover:text-white">
-                  <span class="mr-2">🎁</span> Offers
-                </a>
-              </li>
-              <li>
-                <a href="#"
                   class="flex items-center {% if request.resolver_match.url_name == 'banner' %}
-                    
                     text-white
-
                   {% else %}
-                    
                     text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">🖼️</span> Banner
                 </a>
@@ -170,13 +138,9 @@
               <li>
                 <a href="#"
                   class="flex items-center {% if request.resolver_match.url_name == 'sales_report' %}
-                    
                     text-white
-
                   {% else %}
-                    
                     text-gray-400
-
                   {% endif %} hover:text-white">
                   <span class="mr-2">📊</span> Sales Report
                 </a>

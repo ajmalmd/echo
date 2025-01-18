@@ -87,47 +87,53 @@
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {% csrf_token %}
           {% for variant in products %}
-            <a href="{% url 'view_variant' variant.id %}" class="block">
-              <div class="bg-white p-3 sm:p-4 rounded-lg border hover:shadow-lg transition-shadow">
-                <div class="relative aspect-w-1 aspect-h-1">
-                  <img src="{{ variant.images.first.image_path.url }}"
-                       alt="{{ variant.name }}"
-                       class="w-full h-full object-contain rounded-lg" />
-                  <button class="absolute top-2 right-2 {% if variant.id in wishlist %}text-red-500{% else %}text-gray-400{% endif %} hover:text-red-500 transition-colors wishlist-btn"
-                          data-variant-id="{{ variant.id }}">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-6 w-6"
-                         fill="{% if variant.id in wishlist %}currentColor{% else %}none{% endif %}"
-                         viewBox="0 0 24 24"
-                         stroke="red">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
-                </div>
-                <div class="mt-4">
-                  <h3 class="font-medium text-xs sm:text-sm md:text-base truncate">
-                    {{ variant.brand_name }} {{ variant.product_name }}
-                  </h3>
-                  {% if variant.is_discount_active %}
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
-                      <p class="text-sm sm:text-base md:text-lg font-bold text-black-600">₹ {{ variant.discounted_price|floatformat:2 }}</p>
-                      <p class="text-xs sm:text-sm line-through text-gray-500">₹ {{ variant.price|floatformat:2 }}</p>
-                    </div>
-                  {% else %}
-                    <p class="text-sm sm:text-base md:text-lg font-bold text-black-600 mt-1">₹ {{ variant.price|floatformat:2 }}</p>
-                  {% endif %}
-                  <button data-variant-id="{{ variant.id }}"
-                          class="add-to-cart-btn mt-3 w-full {% if variant.stock == 0 %} bg-red-500 {% else %} bg-gray-900 {% endif %} text-white px-3 py-2 rounded-md {% if variant.stock == 0 %} hover:bg-red-800 {% else %} hover:bg-gray-800 {% endif %} transition-colors text-xs sm:text-sm md:text-base"
-                          {% if variant.stock == 0 %}disabled{% endif %}>
-                    {% if variant.stock == 0 %}
-                      Out of Stock
-                    {% else %}
-                      Add to Cart
-                    {% endif %}
-                  </button>
-                </div>
+          <a href="{% url 'view_variant' variant.id %}" class="block">
+            <div class="bg-white p-3 sm:p-4 rounded-lg border hover:shadow-lg transition-shadow">
+              <div class="relative aspect-w-1 aspect-h-1">
+                <img src="{{ variant.images.first.image_path.url }}"
+                    alt="{{ variant.name }}"
+                    class="w-full h-full object-contain rounded-lg" />
+                <button class="absolute top-2 right-2 {% if variant.id in wishlist %}text-red-500{% else %}text-gray-400{% endif %} hover:text-red-500 transition-colors wishlist-btn"
+                        data-variant-id="{{ variant.id }}">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                      class="h-6 w-6"
+                      fill="{% if variant.id in wishlist %}currentColor{% else %}none{% endif %}"
+                      viewBox="0 0 24 24"
+                      stroke="red">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </button>
               </div>
-            </a>
+              <div class="mt-4">
+                <h3 class="font-medium text-xs sm:text-sm md:text-base truncate">
+                  {{ variant.brand_name }} {{ variant.product_name }}
+                </h3>
+                {% if variant.get_best_offer.name %}
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 h-8">
+                  <p class="text-sm sm:text-base md:text-lg font-bold text-black-600">₹ {{ variant.discounted_price|floatformat:2 }}</p>
+                  <p class="text-xs sm:text-sm line-through text-gray-500">₹ {{ variant.price|floatformat:2 }}</p>
+                </div>
+                <p class="text-xs text-green-600 font-semibold h-4">Offer: {{ variant.get_best_offer.name }}</p>
+                {% elif variant.is_discount_active %}
+                  <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 h-12">
+                    <p class="text-sm sm:text-base md:text-lg font-bold text-black-600">₹ {{ variant.discounted_price|floatformat:2 }}</p>
+                    <p class="text-xs sm:text-sm line-through text-gray-500">₹ {{ variant.price|floatformat:2 }}</p>
+                  </div>
+                {% else %}
+                  <p class="text-sm sm:text-base md:text-lg font-bold text-black-600 mt-3 h-10 ">₹ {{ variant.price|floatformat:2 }}</p>
+                {% endif %}
+                <button data-variant-id="{{ variant.id }}"
+                        class="add-to-cart-btn mt-3 w-full {% if variant.stock == 0 %} bg-red-500 {% else %} bg-gray-900 {% endif %} text-white px-3 py-2 rounded-md {% if variant.stock == 0 %} hover:bg-red-800 {% else %} hover:bg-gray-800 {% endif %} transition-colors text-xs sm:text-sm md:text-base"
+                        {% if variant.stock == 0 %}disabled{% endif %}>
+                  {% if variant.stock == 0 %}
+                    Out of Stock
+                  {% else %}
+                    Add to Cart
+                  {% endif %}
+                </button>
+              </div>
+            </div>
+          </a>
           {% endfor %}
         </div>
       </div>

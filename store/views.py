@@ -440,7 +440,7 @@ def products_listing(request):
             review_count=Count("product__reviews"),
         )
     )
-
+    
     # Apply search filter
     if search_query:
         products = products.filter(

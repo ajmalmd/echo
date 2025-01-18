@@ -4,7 +4,7 @@ from cloudinary.models import CloudinaryField  # Cloudinary image field
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from decimal import Decimal
-
+from django.utils import timezone
 
 # Brand Model
 class Brand(models.Model):
@@ -85,7 +85,14 @@ class ProductVariant(models.Model):
     is_discount_active = models.BooleanField(default=False)
 
     def discounted_price(self):
-        """Returns the price after applying the variant-level discount."""
+        """Returns the price after applying the best offer."""
+        best_offer = self.get_best_offer()
+        if best_offer:
+            if best_offer.discount_type == 'percentage':
+                discount_amount = (best_offer.discount_value / 100) * self.price
+            else:  # fixed amount
+                discount_amount = best_offer.discount_value
+            return max(self.price - discount_amount, 0)
         if self.is_discount_active and self.discount_value:
             if self.discount_type == "percentage":
                 discount_amount = (self.discount_value / 100) * self.price
@@ -93,6 +100,35 @@ class ProductVariant(models.Model):
             elif self.discount_type == "fixed":
                 return max(self.price - self.discount_value, 0)
         return self.price  # No discount applied
+
+    def get_best_offer(self):
+        """Determines which offer is applied and returns the best offer."""
+        current_time = timezone.now()
+        product_offers = self.product.product_offers.filter(
+            is_active=True,
+            start_date__lte=current_time,
+            end_date__gte=current_time
+        )
+        brand_offers = self.product.brand.brand_offers.filter(
+            is_active=True,
+            start_date__lte=current_time,
+            end_date__gte=current_time
+        )
+        all_offers = list(product_offers) + list(brand_offers)
+        
+        if not all_offers:
+            return None
+        
+        best_offer = min(all_offers, key=lambda offer: self.calculate_discounted_price(offer))
+        return best_offer
+
+    def calculate_discounted_price(self, offer):
+        """Calculates the discounted price for a given offer."""
+        if offer.discount_type == 'percentage':
+            discount_amount = (offer.discount_value / 100) * self.price
+        else:  # fixed amount
+            discount_amount = offer.discount_value
+        return max(self.price - discount_amount, 0)
 
     def __str__(self):
         return f"{self.name} - {self.product.name}"
@@ -162,7 +198,6 @@ class Coupon(models.Model):
     discount_value = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     min_purchase_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    applied_to = models.CharField(max_length=50, choices=[('products', 'Products'), ('categories', 'Categories'), ('orders', 'Orders')])
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)
@@ -204,3 +239,4 @@ class CouponUsage(models.Model):
 
 #     def __str__(self):
 #         return f"Referrer: {self.referrer.email}, Referee: {self.referee.email}"
+

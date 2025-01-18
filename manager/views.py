@@ -11,7 +11,6 @@ from store.models import *
 from datetime import datetime
 from django.utils.timezone import localtime
 from django.contrib import messages
-from django.db.models import Count
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -21,6 +20,7 @@ from cloudinary.uploader import (
     upload as cloudinary_upload,
     destroy as cloudinary_delete,
 )
+from django.db.models import Avg, Count, F, Q, Value
 
 
 def is_staff_user(user):
@@ -669,8 +669,8 @@ def offers(request):
         except ValidationError as e:
             return JsonResponse({"success": False, "message": str(e)})
 
-        if Offer.objects.filter(name=name).exists():
-            return JsonResponse({"success": False, "message": "Offer with this name already exists."})
+        if Offer.objects.filter(Q(start_date__lte=end_date, end_date__gte=start_date), name=name).exists():
+            return JsonResponse({"success": False, "message": "An offer with this name and overlapping period already exists."})
 
         try:
             discount_value = Decimal(discount_value)
@@ -756,8 +756,8 @@ def edit_offer(request):
             return JsonResponse({"success": False, "message": str(e)})
 
         # Check if a different offer already has this name
-        if Offer.objects.filter(name=name).exclude(id=offer_id).exists():
-            return JsonResponse({"success": False, "message": "Offer with this name already exists."})
+        if Offer.objects.filter(Q(start_date__lte=end_date, end_date__gte=start_date), name=name).exclude(id=offer_id).exists():
+            return JsonResponse({"success": False, "message": "An offer with this name and overlapping period already exists."})
 
         # Validate discount value
         try:
@@ -861,3 +861,211 @@ def toggle_offer_status(request):
         return JsonResponse({"success": True, "offer_status": f"{'active' if offer.is_active else 'inactive'}", "message": f"Offer status changed to {'active' if offer.is_active else 'inactive'}."})
     else:
         return JsonResponse({"success": False, "message": "Invalid Request."})
+
+
+@login_required(login_url="admin_login")
+@user_passes_test(is_staff_user)
+@never_cache
+def coupons(request):
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = request.POST
+
+        # Field validations
+        code = data.get('code')
+        description = data.get('description')
+        discount_type = data.get('discount_type')
+        discount_value = data.get('discount_value')
+        min_purchase_amount = data.get('min_purchase')
+        max_discount_amount = data.get('max_discount')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        usage_limit = data.get('usage_limit')
+
+        if not all([code, description, discount_type, discount_value, min_purchase_amount, start_date, end_date, usage_limit]):
+            return JsonResponse({"success": False, "message": "All fields are required."})
+
+        if discount_type not in ["fixed", "percentage"]:
+            return JsonResponse({"success": False, "message": "Invalid discount type. Must be 'fixed' or 'percentage'."})
+
+        if Coupon.objects.filter(code=code).exists():
+            return JsonResponse({"success": False, "message": "A coupon with this code already exists."})
+
+        if not usage_limit or int(usage_limit) < 1:
+            return JsonResponse({"success": False, "message": "Usage limit must be at least 1."})
+
+        try:
+            discount_value = Decimal(discount_value)
+            min_purchase_amount = Decimal(min_purchase_amount)
+            max_discount_amount = Decimal(max_discount_amount) if max_discount_amount else None
+
+            if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+                return JsonResponse({"success": False, "message": "Percentage discount must be between 0 and 100."})
+            if min_purchase_amount < 0:
+                return JsonResponse({"success": False, "message": "Minimum purchase amount cannot be negative."})
+            if max_discount_amount and max_discount_amount < 0:
+                return JsonResponse({"success": False, "message": "Maximum discount amount cannot be negative."})
+        except (ValueError, Decimal.InvalidOperation):
+            return JsonResponse({"success": False, "message": "Invalid numeric value."})
+
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            today = now().date()
+
+            if start_date < today:
+                return JsonResponse({"success": False, "message": "Start date must be today or later."})
+            if end_date < start_date:
+                return JsonResponse({"success": False, "message": "End date must be after the start date."})
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD."})
+
+        coupon = Coupon(
+            code=code,
+            description=description,
+            discount_type=discount_type,
+            discount_value=discount_value,
+            min_purchase_amount=min_purchase_amount,
+            max_discount_amount=max_discount_amount,
+            start_date=start_date,
+            end_date=end_date,
+            usage_limit=usage_limit,
+        )
+
+        try:
+            coupon.save()
+            messages.success(request, "Coupon added successfully.")
+            return JsonResponse({"success": True, "message": "Coupon added successfully."})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+    coupons = Coupon.objects.all().order_by('-created_at')
+    page_obj = paginate_items(request, coupons, per_page=10)
+    context = {
+        "page_obj": page_obj
+    }
+    return render(request, "manager/coupons.html", context)
+
+@user_passes_test(is_staff_user)
+@require_http_methods(["POST"])
+def edit_coupon(request):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = request.POST
+
+        coupon_id = data.get('coupon_id')
+        code = data.get('code')
+        description = data.get('description')
+        discount_type = data.get('discount_type')
+        discount_value = data.get('discount_value')
+        min_purchase_amount = data.get('min_purchase')
+        max_discount_amount = data.get('max_discount')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        usage_limit = data.get('usage_limit')
+
+        coupon = get_object_or_404(Coupon, id=coupon_id)
+
+        if not all([code, description, discount_type, discount_value, min_purchase_amount, start_date, end_date, usage_limit]):
+            return JsonResponse({"success": False, "message": "All fields are required."})
+
+        if discount_type not in ["fixed", "percentage"]:
+            return JsonResponse({"success": False, "message": "Invalid discount type. Must be 'fixed' or 'percentage'."})
+
+        if Coupon.objects.filter(code=code).exclude(id=coupon_id).exists():
+            return JsonResponse({"success": False, "message": "A coupon with this code already exists."})
+
+        if not usage_limit or int(usage_limit) < 1:
+            return JsonResponse({"success": False, "message": "Usage limit must be at least 1."})
+
+        try:
+            discount_value = Decimal(discount_value)
+            min_purchase_amount = Decimal(min_purchase_amount)
+            max_discount_amount = Decimal(max_discount_amount) if max_discount_amount else None
+
+            if discount_type == "percentage":
+                if not max_discount_amount:
+                    return JsonResponse({"success": False, "message": "Max discount amount is required for percentage discounts."})
+            else:
+                max_discount_amount = None
+
+            if discount_type == "percentage" and (discount_value < 0 or discount_value > 100):
+                return JsonResponse({"success": False, "message": "Percentage discount must be between 0 and 100."})
+            if min_purchase_amount < 0:
+                return JsonResponse({"success": False, "message": "Minimum purchase amount cannot be negative."})
+            if max_discount_amount and max_discount_amount < 0:
+                return JsonResponse({"success": False, "message": "Maximum discount amount cannot be negative."})
+        except (ValueError, Decimal.InvalidOperation):
+            return JsonResponse({"success": False, "message": "Invalid numeric value."})
+
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            today = now().date()
+
+            if coupon.start_date <= today:
+                if start_date != coupon.start_date:
+                    return JsonResponse({"success": False, "message": "Cannot change start date for an active or past coupon."})
+            else:
+                if start_date < today:
+                    return JsonResponse({"success": False, "message": "Start date must be today or later."})
+
+            if end_date < start_date:
+                return JsonResponse({"success": False, "message": "End date must be after the start date."})
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD."})
+
+        coupon.code = code
+        coupon.description = description
+        coupon.discount_type = discount_type
+        coupon.discount_value = discount_value
+        coupon.min_purchase_amount = min_purchase_amount
+        coupon.max_discount_amount = max_discount_amount
+        coupon.start_date = start_date
+        coupon.end_date = end_date
+        coupon.usage_limit = usage_limit
+
+        try:
+            coupon.save()
+            messages.success(request, "Coupon updated successfully.")
+            return JsonResponse({"success": True, "message": "Coupon updated successfully."})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)})
+
+    return JsonResponse({"success": False, "message": "Invalid request method"})
+
+@user_passes_test(is_staff_user)
+def toggle_coupon_status(request):
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = json.loads(request.body)
+        coupon_id = data.get('coupon_id')
+        coupon = get_object_or_404(Coupon, id=coupon_id)
+        coupon.is_active = not coupon.is_active
+        coupon.save()
+        return JsonResponse({
+            "success": True,
+            "coupon_status": 'active' if coupon.is_active else 'inactive',
+            "message": f"Coupon status changed to {'active' if coupon.is_active else 'inactive'}."
+        })
+    else:
+        return JsonResponse({"success": False, "message": "Invalid Request."})
+
+@require_http_methods(["POST"])
+def get_coupon_details(request):
+    data = json.loads(request.body)
+    coupon_id = data.get('coupon_id')
+    coupon = get_object_or_404(Coupon, id=coupon_id)
+
+    data = {
+        "id": coupon.id,
+        "code": coupon.code,
+        "description": coupon.description,
+        "discount_type": coupon.discount_type,
+        "discount_value": str(coupon.discount_value),
+        "min_purchase_amount": str(coupon.min_purchase_amount),
+        "max_discount_amount": str(coupon.max_discount_amount) if coupon.max_discount_amount else None,
+        "start_date": coupon.start_date.strftime('%Y-%m-%d'),
+        "end_date": coupon.end_date.strftime('%Y-%m-%d'),
+        "is_active": coupon.is_active,
+        "usage_limit": coupon.usage_limit,
+    }
+
+    return JsonResponse(data)
