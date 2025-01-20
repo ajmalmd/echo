@@ -295,9 +295,6 @@ function toggleAddModal() {
           document.getElementById('edit-discount-value').value = data.discount_value;
           document.getElementById('edit-start-date').value = new Date(data.start_date).toISOString().split('T')[0];
           document.getElementById('edit-end-date').value = new Date(data.end_date).toISOString().split('T')[0];
-          const today = new Date().toISOString().split('T')[0];
-          document.getElementById('edit-start-date').min = today;
-          document.getElementById('edit-end-date').min = today;
           
           if (data.offer_type === 'product') {
             editProductSelect.value = data.product_id;

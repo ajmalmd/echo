@@ -330,8 +330,8 @@ class OrderItem(models.Model):
         Calculate the subtotal after applying discounts.
         """
         if self.discount and self.discount < self.price:
-            return (self.price - self.discount) * self.quantity
-        return self.price * self.quantity
+            return ((self.price - self.discount) * self.quantity) - self.coupon_discount
+        return (self.price * self.quantity) - self.coupon_discount
 
     def total_price(self):
         """

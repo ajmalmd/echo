@@ -710,8 +710,10 @@ def cart(request):
     user_available_coupons = Coupon.objects.filter(
         is_active=True,
         start_date__lte=now().date(),
-        end_date__gte=now().date()
+        end_date__gte=now().date(),
+        times_used__lt=models.F('usage_limit')
     ).exclude(usages__user=request.user)
+    
 
     # cart actions
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -751,6 +753,16 @@ def cart(request):
                 if cart_total < cart.applied_coupon.min_purchase_amount:
                     cart.applied_coupon = None
                     cart.save()
+            if variant.get_best_offer():
+                offer = {
+                    "discount_value": variant.get_best_offer().discount_value,
+                    "discount_type": variant.get_best_offer().discount_type
+                }
+            else:
+                offer={
+                    "discount_value":variant.discount_value,
+                    "discount_type":variant.discount_type
+                }
                     
             return JsonResponse(
                 {
@@ -763,8 +775,8 @@ def cart(request):
                     "max_qty": max_qty,
                     "item_price": variant.discounted_price(),
                     "item_old_price": variant.price,
-                    "item_discount_type": variant.discount_type,
-                    "item_discount_value": variant.discount_value,
+                    "item_discount_type": offer["discount_type"],
+                    "item_discount_value": offer["discount_value"],
                     "coupon_applied": cart.applied_coupon is not None,
                     "coupon_code": cart.applied_coupon.code if cart.applied_coupon else None,
                     "coupon_discount": str(cart.total_coupon_discount()) if cart.applied_coupon else '0.00',
@@ -820,7 +832,7 @@ def checkout(request):
         cart.save()
         return JsonResponse({'success': True})
         
-    return redirect("checkout_address")
+    return JsonResponse({'success': False})
     
 
 @login_required(login_url="login")
@@ -838,6 +850,11 @@ def apply_coupon(request):
                 return JsonResponse({
                     'success': False,
                     'message': "You already used this coupon",
+                })
+            if coupon.times_used >= coupon.usage_limit:
+                return JsonResponse({
+                    'success': False,
+                    'message': "Coupon limit exceeds",
                 })
                 
             cart = Cart.objects.get(user=request.user)
@@ -987,6 +1004,7 @@ def select_address(request):
             messages.error(request, "Product not available")
             return redirect("cart")
     total_mrp = round(cart.total_price(), 2)
+    coupon_discount  = cart.total_coupon_discount()
     total_discounted = round(cart.total_discounted_price(), 2)
     total_discount = total_mrp - total_discounted
 
@@ -1000,7 +1018,8 @@ def select_address(request):
         "saved_addresses": saved_addresses,
         "total_mrp": total_mrp,
         "total_discount": total_discount,
-        "total": total_discounted,
+        "coupon_discount": coupon_discount,
+        "total": total_discounted - coupon_discount,
     }
     return render(request, "store/select_address.html", context)
 
@@ -1131,9 +1150,25 @@ def checkout_payment(request):
     total_mrp = round(cart.total_price(), 2)
     total_discounted = round(cart.total_discounted_price(), 2)
     total_discount = total_mrp - total_discounted
+    applied_coupon = cart.applied_coupon
+    coupon_discount = 0
+
+    if applied_coupon and applied_coupon.is_active and applied_coupon.times_used < applied_coupon.usage_limit:
+        if applied_coupon.start_date <= now().date() <= applied_coupon.end_date:
+            if applied_coupon.min_purchase_amount <= cart.total_discounted_price():
+                coupon_discount = cart.total_coupon_discount()
+            else:
+                cart.applied_coupon = None
+                cart.save()
+        else:
+            cart.applied_coupon = None
+            cart.save()
+    else:
+        cart.applied_coupon = None
+        cart.save()
 
     user_wallet, created = Wallet.objects.get_or_create(user=request.user)
-    if user_wallet.balance >= total_discounted:
+    if user_wallet.balance >= (total_discounted-coupon_discount):
         payment_methods = Order.PAYMENT_METHOD_CHOICES
     else:
         payment_methods = [
@@ -1145,7 +1180,7 @@ def checkout_payment(request):
         if payment_method not in dict(payment_methods):
             messages.error(request, "Invalid payment method selected.")
             return redirect("checkout_payment")
-        if payment_method == 'wallet' and user_wallet.balance < total_discounted:
+        if payment_method == 'wallet' and user_wallet.balance < (total_discounted-coupon_discount):
             messages.error(request, "Insufficient balance in your wallet.")
             return redirect("checkout_payment")
 
@@ -1165,8 +1200,9 @@ def checkout_payment(request):
                     delivery_address_type=address.address_type,
                     total_price=total_mrp,
                     total_discount=total_discount,
-                    total_price_after_discount=total_discounted,
+                    total_price_after_discount=total_discounted-coupon_discount,
                     order_payment=payment_method,
+                    applied_coupon = cart.applied_coupon
                 )
 
                 # Create order items
@@ -1174,26 +1210,40 @@ def checkout_payment(request):
                     variant = cart_item.product_variant
                     discount = variant.price - variant.discounted_price()
                     discounted_price = variant.discounted_price()
+                    item_coupon_discount = cart_item.coupon_discount()
                     OrderItem.objects.create(
                         order=order,
                         product_variant=cart_item.product_variant,
                         quantity=cart_item.quantity,
                         price=variant.price,
                         discount=discount,
-                        price_after_discount=discounted_price,
+                        price_after_discount=discounted_price-item_coupon_discount,
+                        coupon_discount=item_coupon_discount
                     )
                     # Update stock
                     cart_item.product_variant.stock -= cart_item.quantity
                     cart_item.product_variant.save()
+                
+                if coupon_discount:
+                    coupon = Coupon.objects.get(id=cart.applied_coupon.id)
+                    CouponUsage.objects.create(
+                        coupon=coupon,
+                        user=request.user,
+                        order=order
+                    )
+                    coupon.times_used+=1
+                    coupon.save()
 
                 # Clear the cart
+                cart.applied_coupon=None
+                cart.save()
                 cart.items.all().delete()
 
                 if payment_method == "razorpay":
                     razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
                     # Create Razorpay order
                     razorpay_order = razorpay_client.order.create({
-                        'amount': int(total_discounted * 100),  # Amount in paise
+                        'amount': int((total_discounted-coupon_discount) * 100),  # Amount in paise
                         'currency': 'INR',
                         'payment_capture': '1'
                     })
@@ -1205,13 +1255,13 @@ def checkout_payment(request):
                         'order_id': order.id,
                         'razorpay_order_id': razorpay_order['id'],
                         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
-                        'amount': int(total_discounted * 100),
+                        'amount': int((total_discounted-coupon_discount) * 100),
                     })
                     
                 if payment_method == 'wallet':
                     WalletTransaction.objects.create(
                         wallet=user_wallet,
-                        amount=total_discounted,
+                        amount=total_discounted-coupon_discount,
                         transaction_type='debit',
                         transaction_purpose='purchase',
                         description = f"Purchase of order #{order.id}",
@@ -1229,7 +1279,8 @@ def checkout_payment(request):
     context = {
         "total_mrp": total_mrp,
         "total_discount": total_discount,
-        "total": total_discounted,
+        "coupon_discount": coupon_discount,
+        "total": total_discounted - coupon_discount,
         "payment_methods": payment_methods,
         "razorpay_key_id": settings.RAZORPAY_KEY_ID,
     }
@@ -1408,8 +1459,6 @@ def orders(request):
 
         elif action == "return":
             if order_item.status == "delivered":
-                # Create a return request (you might want to create a separate model for this)
-                # ReturnRequest.objects.create(order_item=order_item, status='pending')
                 order_item.status = "return_requested"
                 order_item.save()
                 return JsonResponse(

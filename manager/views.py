@@ -773,23 +773,14 @@ def edit_offer(request):
             end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
             today = now().date()  # Convert to date for consistent comparison
 
-            # Determine valid range for start date based on existing start date
-            if offer.start_date < today:
-                # Existing start date is before today
-                if start_date < today or start_date > end_date:
-                    return JsonResponse({
-                        "success": False,
-                        "message": "Start date must be between today and the end date."
-                    })
-            else:
-                # Existing start date is today or later
-                if start_date < offer.start_date or start_date > end_date:
-                    return JsonResponse({
-                        "success": False,
-                        "message": f"Start date must be between {offer.start_date} and the end date."
-                    })
+            # Ensure the start date is valid
+            if start_date != localtime(offer.start_date).date() and start_date < today:
+                return JsonResponse({
+                    "success": False,
+                    "message": "Start date must be the existing start date or greater than or equal to today."
+                })
 
-            # Ensure end date is valid
+            # Ensure the end date is valid
             if end_date < start_date:
                 return JsonResponse({
                     "success": False,

@@ -28,12 +28,17 @@
                                     <p class="text-sm text-gray-600">Status: {{ order_item.get_status_display }}</p>
                                 </div>
                             </div>
-                            {% if order_item.discount %}
+                            {% if order_item.discount or order_item.coupon_discount %}
                                 <div class="mt-4 md:mt-0">
                                     <h4 class="text-lg font-semibold text-gray-800 mb-2">Item Price Details</h4>
                                     <div class="bg-green-100 text-green-800 p-3 rounded-md">
                                         <p class="font-semibold">MRP: {{ order_item.total_price }}</p>
+                                        {% if order_item.total_discount %}
                                         <p class="font-semibold mt-1">Discount: {{ order_item.total_discount }}</p>
+                                        {% endif %}
+                                        {% if order_item.coupon_discount %}
+                                        <p class="font-semibold mt-1">Coupon Discount: {{ order_item.coupon_discount }}</p>
+                                        {% endif %}
                                         <p class="font-semibold mt-1">Discounted Price: {{ order_item.sub_total }}</p>
                                     </div>
                                 </div>

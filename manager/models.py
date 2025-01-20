@@ -120,6 +120,15 @@ class ProductVariant(models.Model):
             return None
         
         best_offer = min(all_offers, key=lambda offer: self.calculate_discounted_price(offer))
+        offer_discount = self.calculate_discounted_price(best_offer)
+        if self.is_discount_active and self.discount_value:
+            if self.discount_type == "percentage":
+                discount_amount = (self.discount_value / 100) * self.price
+                discount = max(self.price - discount_amount, 0)
+            elif self.discount_type == "fixed":
+                discount = max(self.price - self.discount_value, 0)
+            if offer_discount > discount:
+                return None
         return best_offer
 
     def calculate_discounted_price(self, offer):
@@ -220,7 +229,6 @@ class CouponUsage(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     used_at = models.DateTimeField(auto_now_add=True)
     order = models.ForeignKey('store.Order', on_delete=models.SET_NULL, null=True, blank=True)
-    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('applied', 'Applied'), ('redeemed', 'Redeemed'), ('failed', 'Failed')])
 
     class Meta:
         unique_together = ('coupon', 'user', 'order')

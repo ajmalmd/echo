@@ -116,6 +116,12 @@
             <span class="text-gray-600">Discount on MRP</span>
             <span class="text-green-400">₹<span id="total-discount">{{ total_discount|floatformat:2 }}</span></span>
           </div>
+          {% if coupon_discount %}
+            <div id="coupon-discount-view" class="flex justify-between">
+              <span class="text-gray-600">Coupon Discount</span>
+              <span class="text-green-400">₹<span id="coupon-discount">{{ coupon_discount }}</span></span>
+            </div>
+          {% endif %}
           <div class="flex justify-between">
             <span class="text-gray-600">Shipping:</span>
             <span>FREE</span>
