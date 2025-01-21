@@ -20,7 +20,14 @@ from django.contrib.auth.hashers import check_password
 from django.views.decorators.csrf import csrf_exempt 
 from django.conf import settings
 import razorpay
-
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib import colors
 
 def is_customer(user):
     return user.is_authenticated and not user.is_staff
@@ -1174,6 +1181,8 @@ def checkout_payment(request):
         payment_methods = [
             method for method in Order.PAYMENT_METHOD_CHOICES if method[0] != 'wallet'
         ]
+    if (total_discounted-coupon_discount) > 1000:
+        payment_methods = [method for method in payment_methods if method[0] != 'cod']
 
     if request.method == "POST":
         payment_method = request.POST.get("payment_method")
@@ -1516,6 +1525,127 @@ def view_order(request, item_id):
     context = {"variant": variant, "order_item": order_item, "other_items": other_items}
 
     return render(request, "store/view_order.html", context)
+
+
+def download_invoice(request, item_id):
+    try:
+        order_item = OrderItem.objects.get(id=item_id)
+    except OrderItem.DoesNotExist:
+        return HttpResponse("Order item not found.", status=404)
+    
+    if request.user != order_item.order.user:
+        return HttpResponse("Invalid Request", status=403)
+    
+    # Create PDF buffer
+    buffer = BytesIO()
+    
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Helper function for drawing lines
+    def draw_line(x1, y1, x2, y2):
+        p.line(x1 * cm, y1 * cm, x2 * cm, y2 * cm)
+
+    # Header
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(1 * cm, height - 2 * cm, "INVOICE")
+    
+    p.setFont("Helvetica", 10)
+    p.drawString(1 * cm, height - 3 * cm, f"Invoice Number: {order_item.order.id:012d}")
+    p.drawString(1 * cm, height - 3.5 * cm, f"Order Number: {order_item.order.id}")
+    p.drawString(1 * cm, height - 4 * cm, f"Order Date: {order_item.order.created_at.strftime('%d %b %Y')}")
+
+    # Company logo placeholder (replace with your actual logo)
+    p.rect(14 * cm, height - 4 * cm, 5 * cm, 2 * cm)
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(14.5 * cm, height - 3 * cm, "Echo Ltd")
+
+    # Separator line
+    draw_line(1, height/cm - 4.5, 20, height/cm - 4.5)
+
+    # Billing Information
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(1 * cm, height - 5.5 * cm, "Bill to / Ship to:")
+    p.setFont("Helvetica", 10)
+    p.drawString(1 * cm, height - 6 * cm, f"{order_item.order.user.fullname}")
+    p.drawString(1 * cm, height - 6.5 * cm, f"{order_item.order.delivery_address_line_1}")
+    p.drawString(1 * cm, height - 7 * cm, f"{order_item.order.delivery_city} - {order_item.order.delivery_postal_code}")
+    p.drawString(1 * cm, height - 7.5 * cm, f"{order_item.order.delivery_state}, {order_item.order.delivery_country}")
+
+    # Company Information
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(11 * cm, height - 5.5 * cm, "Ship From:")
+    p.setFont("Helvetica", 10)
+    p.drawString(11 * cm, height - 6 * cm, "Echo Ltd")
+    p.drawString(11 * cm, height - 6.5 * cm, "Sector 991, Business Bay")
+    p.drawString(11 * cm, height - 7 * cm, "Trivandrum, Kerala - 695001")
+
+    # Separator line
+    draw_line(1, height/cm - 8.5, 20, height/cm - 8.5)
+
+    # Item details
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(1 * cm, height - 9.5 * cm, "Item Details")
+    
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(1 * cm, height - 10.5 * cm, f"{order_item.product_variant.product.brand} {order_item.product_variant.product} - {order_item.product_variant.name}")
+
+    data = [
+        ["Quantity", "Gross Amount", "Discount", "Coupon Discount"],
+        [
+            str(order_item.quantity),
+            f"{order_item.total_price():.2f}",
+            f"{order_item.total_discount():.2f}",
+            f"{order_item.coupon_discount:.2f}"
+        ]
+    ]
+
+    table = Table(data, colWidths=[4 * cm, 4 * cm, 4 * cm, 4 * cm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 1 * cm, height - 13 * cm)
+
+    # Total
+    p.setFillColorRGB(0.9, 0.9, 0.9)  # Light gray background
+    p.rect(1 * cm, height - 14 * cm, 19 * cm, 0.8 * cm, fill=1)
+    p.setFillColorRGB(0, 0, 0)  # Back to black text
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(1.5 * cm, height - 13.8 * cm, "Total Amount:")
+    p.drawString(16 * cm, height - 13.8 * cm, f"{order_item.sub_total():.2f}")
+
+    # Footer
+    p.setFont("Helvetica", 8)
+    p.drawString(1 * cm, 1 * cm, "Thank you for your purchase!")
+    p.drawString(1 * cm, 0.7 * cm, f"Generated on: {order_item.order.created_at.strftime('%d %b %Y %H:%M:%S')}")
+
+    # Close the PDF object cleanly, and we're done.
+    p.showPage()
+    p.save()
+
+    # FileResponse sets the Content-Disposition header so that browsers
+    # present the option to save the file.
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Invoice_{order_item.order.id}_{order_item.id}.pdf"'
+    return response
+
+
 
 
 @login_required(login_url="login")

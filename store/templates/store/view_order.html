@@ -11,7 +11,14 @@
                     <!-- Order Header -->
                     <div class="bg-gray-50 p-6 border-b border-gray-200">
                         <h2 class="text-2xl font-semibold text-gray-800">Order Details</h2>
-                        <p class="text-sm text-gray-600">Order #{{ order_item.order.id }}</p>
+                        <div class="flex justify-between">
+                            <p class="text-sm text-gray-600">Order #{{ order_item.order.id }}</p>
+                            {% if order_item.status == 'delivered'  %}
+                            <a href="{% url "download_invoice" order_item.id  %}" class="px-4 py-2 text-white rounded bg-black hover:bg-gray-800 transition duration-150 ease-in-out">
+                                Get Invoice
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                     <!-- Product Information -->
                     <div class="p-6">
