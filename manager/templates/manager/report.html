@@ -1,0 +1,189 @@
+{% extends 'manager/base.html' %}
+{% load static %}
+
+{% block header %}Sales Report{% endblock %}
+
+{% block content %}
+<main class="p-6">
+    <div class="mb-6">
+        <!-- Filter Form -->
+        <form method="get" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="flex flex-wrap -mx-3 mb-4">
+                <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="date-range">
+                        Date Range
+                    </label>
+                    <select id="date-range" name="date_range" class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                        <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Custom</option>
+                        <option value="daily" {% if date_range == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if date_range == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="monthly" {% if date_range == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="yearly" {% if date_range == 'yearly' %}selected{% endif %}>Yearly</option>
+                    </select>
+                </div>
+                <div id="custom-date-range" class="w-full md:w-2/4 px-3 mb-6 md:mb-0">
+                    <div class="flex">
+                        <div class="w-1/2 pr-2">
+                            <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="start-date">
+                                Start Date
+                            </label>
+                            <input type="date" id="start-date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                        </div>
+                        <div class="w-1/2 pl-2">
+                            <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="end-date">
+                                End Date
+                            </label>
+                            <input type="date" id="end-date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0 flex items-end">
+                    <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Generate Report
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <!-- Summary Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8">
+                <h2 class="text-xl font-semibold mb-2">Overall Sales Count</h2>
+                <p class="text-3xl font-bold">{{ overall_sales_count }}</p>
+            </div>
+            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8">
+                <h2 class="text-xl font-semibold mb-2">Overall Order Amount</h2>
+                <p class="text-3xl font-bold">₹{{ overall_order_amount }}</p>
+            </div>
+            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8">
+                <h2 class="text-xl font-semibold mb-2">Overall Discount</h2>
+                <p class="text-3xl font-bold">₹{{ overall_discount }}</p>
+            </div>
+        </div>
+        
+        <!-- Download Buttons -->
+        <div class="flex justify-end space-x-4 mt-4">
+            {% if orders %}
+                <a href="{% url 'download_report' %}?format=pdf&{{ request.GET.urlencode }}" 
+                   class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Download PDF
+                </a>
+                <a href="{% url 'download_report' %}?format=excel&{{ request.GET.urlencode }}" 
+                   class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Download Excel
+                </a>
+            {% else %}
+                <span class="text-gray-500 italic">No data available for download</span>
+            {% endif %}
+        </div>
+
+        <!-- Sales Data Table -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mt-4 overflow-x-auto">
+            {% if orders %}
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Date</th>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Order ID</th>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Total Price</th>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Discount</th>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Coupon Discount</th>
+                            <th class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">Final Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="py-4 px-6 border-b border-grey-light">{{ order.created_at|date:"Y-m-d" }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">#{{ order.id }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">₹{{ order.total_price }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">₹{{ order.total_discount }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">₹{{ order.total_coupon_discount }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">₹{{ order.total_price_after_discount }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-4 px-6 border-b border-grey-light text-center">No sales found for the selected period.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-center py-4">No sales data available for the selected period.</p>
+            {% endif %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if orders %}
+            <div class="flex justify-center mt-4">
+                <nav class="inline-flex rounded-md shadow">
+                    {% if orders.has_previous %}
+                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            First
+                        </a>
+                        <a href="?page={{ orders.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 border-t border-b border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            Previous
+                        </a>
+                    {% endif %}
+                    <span class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                        Page {{ orders.number }} of {{ orders.paginator.num_pages }}
+                    </span>
+                    {% if orders.has_next %}
+                        <a href="?page={{ orders.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 border-t border-b border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            Next
+                        </a>
+                        <a href="?page={{ orders.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            Last
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateRangeSelect = document.getElementById('date-range');
+        const customDateRange = document.getElementById('custom-date-range');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+
+        function updateDateInputs() {
+            const today = new Date();
+            let startDate = new Date();
+
+            if (dateRangeSelect.value === 'custom') {
+                customDateRange.style.display = 'block';
+                return;
+            }
+
+            customDateRange.style.display = 'none';
+
+            switch(dateRangeSelect.value) {
+                case 'daily':
+                    startDate = today;
+                    break;
+                case 'weekly':
+                    startDate.setDate(today.getDate() - 7);
+                    break;
+                case 'monthly':
+                    startDate.setMonth(today.getMonth() - 1);
+                    break;
+                case 'yearly':
+                    startDate.setFullYear(today.getFullYear() - 1);
+                    break;
+            }
+
+            startDateInput.value = startDate.toISOString().split('T')[0];
+            endDateInput.value = today.toISOString().split('T')[0];
+        }
+
+        dateRangeSelect.addEventListener('change', updateDateInputs);
+        updateDateInputs(); // Call on initial load
+    });
+</script>
+{% endblock %}
+

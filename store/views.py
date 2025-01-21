@@ -964,7 +964,7 @@ def add_to_cart(request):
             return JsonResponse(
                 {
                     "success": True,
-                    "message": "You have this item in your cart, We have increased the quantity by 1",
+                    "message": "Increased the quantity by 1",
                     "cart_item_count": cart_item_count,
                 }
             )

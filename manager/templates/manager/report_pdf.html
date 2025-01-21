@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Sales Report</h1>
+    <p>Date Range: {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}</p>
+    
+    <h2>Summary</h2>
+    <p>Overall Sales Count: {{ overall_sales_count }}</p>
+    <p>Overall Order Amount: ₹{{ overall_order_amount }}</p>
+    <p>Overall Discount: ₹{{ overall_discount }}</p>
+    
+    <h2>Orders</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Order ID</th>
+                <th>Total Price</th>
+                <th>Discount</th>
+                <th>Coupon Discount</th>
+                <th>Final Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.created_at|date:"Y-m-d" }}</td>
+                <td>#{{ order.id }}</td>
+                <td>₹{{ order.total_price }}</td>
+                <td>₹{{ order.total_discount }}</td>
+                <td>₹{{ order.total_coupon_discount }}</td>
+                <td>₹{{ order.total_price_after_discount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+

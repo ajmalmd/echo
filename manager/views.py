@@ -8,7 +8,7 @@ from .utils import paginate_items
 from .models import *
 from store.validators import *
 from store.models import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils.timezone import localtime
 from django.contrib import messages
 import json
@@ -20,7 +20,18 @@ from cloudinary.uploader import (
     upload as cloudinary_upload,
     destroy as cloudinary_delete,
 )
-from django.db.models import Avg, Count, F, Q, Value
+from django.db.models import Avg, Count, F, Q, Value, Sum
+from django.core.paginator import Paginator
+from django.http import HttpResponse
+from django.utils import timezone
+import xlsxwriter
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
 
 
 def is_staff_user(user):
@@ -1040,6 +1051,7 @@ def toggle_coupon_status(request):
         return JsonResponse({"success": False, "message": "Invalid Request."})
 
 @require_http_methods(["POST"])
+@user_passes_test(is_staff_user)
 def get_coupon_details(request):
     data = json.loads(request.body)
     coupon_id = data.get('coupon_id')
@@ -1060,3 +1072,229 @@ def get_coupon_details(request):
     }
 
     return JsonResponse(data)
+
+@user_passes_test(is_staff_user)
+def report(request):
+    # Get filter parameters
+    date_range = request.GET.get('date_range', 'daily')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Set default date range if not provided
+    today = datetime.now().date()
+    if date_range != 'custom' or not start_date or not end_date:
+        end_date = today
+
+        if date_range == 'daily':
+            start_date = end_date
+        elif date_range == 'weekly':
+            start_date = today - timedelta(days=today.weekday())
+        elif date_range == 'monthly':
+            start_date = today.replace(day=1)
+        elif date_range == 'yearly':
+            start_date = today.replace(month=1, day=1)
+        else:
+            start_date = end_date - timedelta(days=30)
+    else:
+        start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    orders = Order.objects.filter(created_at__date__range=[start_date, end_date]).order_by('-created_at')
+
+    # Pagination
+    paginator = Paginator(orders, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Calculate summary statistics
+    overall_sales_count = orders.count()
+    overall_order_amount = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    overall_discount = orders.aggregate(Sum('total_discount'))['total_discount__sum'] or 0
+
+    context = {
+        'orders': page_obj,
+        'overall_sales_count': overall_sales_count,
+        'overall_order_amount': overall_order_amount,
+        'overall_discount': overall_discount,
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+
+    return render(request, 'manager/report.html', context)
+
+@user_passes_test(is_staff_user)
+def download_report(request):
+    # Get filter parameters
+    date_range = request.GET.get('date_range', 'daily')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Set default date range if not provided
+    today = timezone.now().date()
+    if date_range != 'custom' or not start_date or not end_date:
+        end_date = today
+
+        if date_range == 'daily':
+            start_date = end_date
+        elif date_range == 'weekly':
+            start_date = today - timedelta(days=today.weekday())
+        elif date_range == 'monthly':
+            start_date = today.replace(day=1)
+        elif date_range == 'yearly':
+            start_date = today.replace(month=1, day=1)
+        else:
+            start_date = end_date - timedelta(days=30)
+    else:
+        start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    orders = Order.objects.filter(created_at__date__range=[start_date, end_date]).order_by('-created_at')
+
+    # Calculate summary statistics
+    overall_sales_count = orders.count()
+    overall_order_amount = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    overall_discount = orders.aggregate(Sum('total_discount'))['total_discount__sum'] or 0
+
+    context = {
+        'orders': orders,
+        'overall_sales_count': overall_sales_count,
+        'overall_order_amount': overall_order_amount,
+        'overall_discount': overall_discount,
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+
+    format = request.GET.get('format', 'pdf')
+    
+    if format == 'pdf':
+        # Generate PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Center', alignment=1))
+        title_style = styles['Heading1']
+        title_style.alignment = 1  # Center alignment
+        subtitle_style = styles['Heading4']
+        subtitle_style.alignment = 1
+        normal_style = styles['Normal']
+        
+        # Content
+        content = []
+        
+        # Title
+        content.append(Paragraph("Sales Report", title_style))
+        content.append(Spacer(1, 0.25*inch))
+        
+        # Date Range
+        content.append(Paragraph(f"Date Range: {start_date} to {end_date}", subtitle_style))
+        content.append(Spacer(1, 0.25*inch))
+        
+        # Summary Statistics
+        summary_data = [
+            ['Total Orders:', f"{overall_sales_count:,}"],
+            ['Total Sales Amount:', f"{overall_order_amount:,.2f}"],
+            ['Total Discounts:', f"{overall_discount:,.2f}"]
+        ]
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+        ]))
+        content.append(summary_table)
+        content.append(Spacer(1, 0.25*inch))
+        
+        # Orders Table
+        headers = ['Date', 'Order ID', 'Total Price', 'Discount', 'Coupon Disc.', 'Final Price']
+        data = [headers]
+        for order in orders:
+            data.append([
+                order.created_at.strftime('%Y-%m-%d'),
+                str(order.id),
+                f"{order.total_price:,.2f}",
+                f"{order.total_discount:,.2f}",
+                f"{order.total_coupon_discount():,.2f}",
+                f"{order.total_price_after_discount:,.2f}"
+            ])
+        
+        table = Table(data, repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('TOPPADDING', (0, 0), (-1, 0), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('TOPPADDING', (0, 0), (-1, 0), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+        ]))
+        content.append(table)
+        
+        # Build PDF
+        doc.build(content)
+        buffer.seek(0)
+        
+        # Create HTTP response
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename=sales_report.pdf'
+        return response
+
+    elif format == 'excel':
+        # Generate Excel
+        output = BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        worksheet = workbook.add_worksheet()
+
+        # Define formats
+        header_format = workbook.add_format({'bold': True, 'bg_color': '#D9EAD3', 'border': 1})
+        date_format = workbook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1})
+        currency_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1})
+        general_format = workbook.add_format({'border': 1})
+
+        # Write headers with formatting
+        headers = ['Date', 'Order ID', 'Total Price', 'Discount', 'Coupon Discount', 'Final Price']
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+
+        # Write data with appropriate formatting
+        for row, order in enumerate(orders, start=1):
+            worksheet.write(row, 0, order.created_at.strftime('%Y-%m-%d'), date_format)
+            worksheet.write(row, 1, order.id, general_format)
+            worksheet.write(row, 2, order.total_price, currency_format)
+            worksheet.write(row, 3, order.total_discount, currency_format)
+            worksheet.write(row, 4, order.total_coupon_discount(), currency_format)
+            worksheet.write(row, 5, order.total_price_after_discount, currency_format)
+
+        # Adjust column widths
+        worksheet.set_column(0, 0, 15)  # Date
+        worksheet.set_column(1, 1, 10)  # Order ID
+        worksheet.set_column(2, 5, 15)  # Numeric columns
+
+        # Close workbook
+        workbook.close()
+
+        # Create the HTTP response
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=sales_report.xlsx'
+        response.write(output.getvalue())
+        output.close()  # Ensure BytesIO object is closed
+        return response
+    else:
+        return HttpResponse("Invalid format specified", status=400)

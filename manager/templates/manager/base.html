@@ -114,6 +114,16 @@
                   <span class="mr-2">🏷️</span> Coupons
                 </a>
               </li>
+              <li>
+                <a href="{% url "report" %}"
+                  class="flex items-center {% if request.resolver_match.url_name == 'report' %}
+                    text-white
+                  {% else %}
+                    text-gray-400
+                  {% endif %} hover:text-white">
+                  <span class="mr-2">📊</span> Sales Report
+                </a>
+              </li>
               {% comment %}
               <li>
                 <a href="#"
@@ -133,16 +143,6 @@
                     text-gray-400
                   {% endif %} hover:text-white">
                   <span class="mr-2">🖼️</span> Banner
-                </a>
-              </li>
-              <li>
-                <a href="#"
-                  class="flex items-center {% if request.resolver_match.url_name == 'sales_report' %}
-                    text-white
-                  {% else %}
-                    text-gray-400
-                  {% endif %} hover:text-white">
-                  <span class="mr-2">📊</span> Sales Report
                 </a>
               </li>
               {% endcomment %}
