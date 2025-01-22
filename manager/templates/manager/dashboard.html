@@ -38,6 +38,7 @@
   const salesData = JSON.parse('{{ sales_data|safe }}');
   const topProducts = JSON.parse('{{ top_products|safe }}');
   const topBrands = JSON.parse('{{ top_brands|safe }}');
+  const timeFilter = document.getElementById('time-filter').value;
 
   function createSalesChart() {
     try {
@@ -45,7 +46,7 @@
       new Chart(ctx, {
         type: 'line',
         data: {
-          labels: salesData.map(item => new Date(item.date).toLocaleDateString()),
+          labels: salesData.map(item => timeFilter == 'monthly'? new Date(item.date).toLocaleDateString('default', { month: 'long' }):new Date(item.date).getFullYear()),
           datasets: [{
             label: 'Sales',
             data: salesData.map(item => item.total_sales),

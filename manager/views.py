@@ -704,8 +704,6 @@ def order_view(request, order_id):
 def offers(request):
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
         data = request.POST
-
-        # Field validations
         name = data.get('name')
         description = data.get('description')
         offer_type = data.get('offer_type')
