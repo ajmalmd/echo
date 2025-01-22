@@ -1,4 +1,135 @@
 {% extends 'manager/base.html' %}
+{% load static %}
+
 {% block header %}
   Dashboard
+{% endblock %}
+
+{% block content %}
+<main class="p-6">
+  <div class="mb-4">
+    <label for="time-filter">Time Filter:</label>
+    <select id="time-filter" onchange="updateCharts()">
+      <option value="monthly" {% if time_filter == 'monthly' %}selected{% endif %}>Monthly</option>
+      <option value="yearly" {% if time_filter == 'yearly' %}selected{% endif %}>Yearly</option>
+    </select>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <h2 class="text-xl font-bold mb-2">Sales Over Time</h2>
+      <canvas id="salesChart"></canvas>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold mb-2">Top Selling Products</h2>
+      <canvas id="productsChart"></canvas>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold mb-2">Top Selling Brands</h2>
+      <canvas id="brandsChart"></canvas>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const salesData = JSON.parse('{{ sales_data|safe }}');
+  const topProducts = JSON.parse('{{ top_products|safe }}');
+  const topBrands = JSON.parse('{{ top_brands|safe }}');
+
+  function createSalesChart() {
+    try {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: salesData.map(item => new Date(item.date).toLocaleDateString()),
+          datasets: [{
+            label: 'Sales',
+            data: salesData.map(item => item.total_sales),
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error creating sales chart:', error);
+    }
+  }
+
+  function createProductsChart() {
+    try {
+      const ctx = document.getElementById('productsChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: topProducts.map(item => item.product_variant__product__name),
+          datasets: [{
+            label: 'Quantity Sold',
+            data: topProducts.map(item => item.total_quantity),
+            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error creating products chart:', error);
+    }
+  }
+
+  function createBrandsChart() {
+    try {
+      const ctx = document.getElementById('brandsChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: topBrands.map(item => item.product_variant__product__brand__name),
+          datasets: [{
+            label: 'Quantity Sold',
+            data: topBrands.map(item => item.total_quantity),
+            backgroundColor: 'rgba(197, 137, 18, 0.6)'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error creating brands chart:', error);
+    }
+  }
+
+  function updateCharts() {
+    const timeFilter = document.getElementById('time-filter').value;
+    window.location.href = `?time_filter=${timeFilter}`;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    createSalesChart();
+    createProductsChart();
+    createBrandsChart();
+  });
+</script>
 {% endblock %}

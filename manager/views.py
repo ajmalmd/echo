@@ -21,6 +21,8 @@ from cloudinary.uploader import (
     destroy as cloudinary_delete,
 )
 from django.db.models import Avg, Count, F, Q, Value, Sum
+from django.db.models.functions import TruncMonth, TruncYear
+from django.core.serializers.json import DjangoJSONEncoder
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.utils import timezone
@@ -70,7 +72,50 @@ def admin_logout(request):
 @user_passes_test(is_staff_user)
 @never_cache
 def dashboard(request):
-    return render(request, "manager/dashboard.html")
+    # Get filter parameters
+    time_filter = request.GET.get('time_filter', 'monthly')
+    
+    # Prepare sales data
+    if time_filter == 'yearly':
+        sales_data = Order.objects.exclude(
+            items__status='cancelled'
+        ).annotate(
+            date=TruncYear('created_at')
+        ).values('date').annotate(
+            total_sales=Sum('total_price_after_discount')
+        ).order_by('date')
+    else:  # monthly
+        sales_data = Order.objects.exclude(
+            items__status='cancelled'
+        ).annotate(
+            date=TruncMonth('created_at')
+        ).values('date').annotate(
+            total_sales=Sum('total_price_after_discount')
+        ).order_by('date')
+
+    
+    # Get top 10 selling products
+    top_products = OrderItem.objects.exclude(status='cancelled').values(
+        'product_variant__product__name'
+    ).annotate(
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')[:10]
+    
+    # Get top 10 selling brands
+    top_brands = OrderItem.objects.exclude(status='cancelled').values(
+        'product_variant__product__brand__name'
+    ).annotate(
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')[:10]
+    
+    context = {
+        'sales_data': json.dumps(list(sales_data), cls=DjangoJSONEncoder),
+        'top_products': json.dumps(list(top_products), cls=DjangoJSONEncoder),
+        'top_brands': json.dumps(list(top_brands), cls=DjangoJSONEncoder),
+        'time_filter': time_filter,
+    }
+    
+    return render(request, 'manager/dashboard.html', context)
 
 
 @login_required(login_url="admin_login")
