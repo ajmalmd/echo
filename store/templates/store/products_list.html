@@ -137,6 +137,32 @@
           </a>
           {% endfor %}
         </div>
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex justify-center mt-8">
+          <nav class="inline-flex rounded-md shadow">
+            {% if page_obj.has_previous %}
+              <a href="?{% for key, value_list in request.GET.lists %}{% if key != 'page' %}{% for value in value_list %}{{ key }}={{ value }}&{% endfor %}{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" class="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                Previous
+              </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="px-3 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">{{ num }}</span>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?{% for key, value_list in request.GET.lists %}{% if key != 'page' %}{% for value in value_list %}{{ key }}={{ value }}&{% endfor %}{% endif %}{% endfor %}page={{ num }}" class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a href="?{% for key, value_list in request.GET.lists %}{% if key != 'page' %}{% for value in value_list %}{{ key }}={{ value }}&{% endfor %}{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" class="px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                Next
+              </a>
+            {% endif %}
+          </nav>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -291,14 +317,7 @@
           filterContent.classList.add('hidden');
         }
       });
-
-      // Handle filter form submission
       const filterForm = document.getElementById('filter-form');
-      filterForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        sendFilterAndSortRequest();
-      });
-
       // Handle individual checkbox changes
       const filterCheckboxes = filterForm.querySelectorAll('input[type="checkbox"]');
       filterCheckboxes.forEach(checkbox => {
@@ -314,27 +333,30 @@
       });
 
       function sendFilterAndSortRequest() {
-        const formData = new FormData(filterForm);
-        const currentSort = sortSelect.value;
-        formData.append('sort', currentSort);
-
+        const formData = new FormData(filterForm)
+        const currentSort = sortSelect.value
+        formData.append("sort", currentSort)
+      
         fetch(window.location.pathname, {
-          method: 'POST',
+          method: "POST",
           body: formData,
           headers: {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-          }
+            "X-CSRFToken": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+          },
         })
-        .then(response => response.json())
-        .then(data => {
-          if (data.reload) {
-            location.reload();
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.reload) {
+              // Update the URL without reloading the page
+              window.history.pushState({}, '', data.url);
+              // Then reload the page
+              window.location.reload();
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error)
+          })
       }
     });
   </script>

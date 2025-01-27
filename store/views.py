@@ -28,6 +28,7 @@ from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import Paragraph, Table, TableStyle
 from reportlab.lib import colors
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 def is_customer(user):
     return user.is_authenticated and not user.is_staff
@@ -410,27 +411,33 @@ def products_listing(request):
         type_filter = request.POST.getlist("type")
         connectivity_filter = request.POST.getlist("connectivity")
         sort_by = request.POST.get("sort", "featured")
+        page = request.POST.get('page', 1)
         
-        # Store filter and sort parameters in session
-        request.session['brand_filter'] = brand_filter
-        request.session['type_filter'] = type_filter
-        request.session['connectivity_filter'] = connectivity_filter
-        request.session['sort_by'] = sort_by
+        # Construct the URL with updated parameters
+        url_params = []
+        if brand_filter:
+            url_params.extend([f"brand={b}" for b in brand_filter])
+        if type_filter:
+            url_params.extend([f"type={t}" for t in type_filter])
+        if connectivity_filter:
+            url_params.extend([f"connectivity={c}" for c in connectivity_filter])
+        if sort_by:
+            url_params.append(f"sort={sort_by}")
+        if page:
+            url_params.append(f"page={page}")
         
-        return JsonResponse({'reload': True})
-
-    # Get filter and sort parameters from session or GET parameters
-    brand_filter = request.session.get('brand_filter') or request.GET.getlist("brand")
-    type_filter = request.session.get('type_filter') or request.GET.getlist("type")
-    connectivity_filter = request.session.get('connectivity_filter') or request.GET.getlist("connectivity")
-    sort_by = request.session.get('sort_by') or request.GET.get("sort", "featured")
+        new_url = f"{request.path}?{'&'.join(url_params)}"
+        
+        return JsonResponse({
+            'reload': True,
+            'url': new_url
+        })
+    
+    brand_filter = request.GET.getlist("brand")
+    type_filter = request.GET.getlist("type")
+    connectivity_filter = request.GET.getlist("connectivity")
+    sort_by = request.GET.get("sort", "featured")
     search_query = request.GET.get("search", "")
-
-    # Clear session variables
-    request.session.pop('brand_filter', None)
-    request.session.pop('type_filter', None)
-    request.session.pop('connectivity_filter', None)
-    request.session.pop('sort_by', None)
 
     products = (
         ProductVariant.objects.filter(
@@ -448,33 +455,31 @@ def products_listing(request):
         )
     )
     
-    # Apply search filter
+    # filters
     if search_query:
         products = products.filter(
             Q(product_name__icontains=search_query)
             | Q(brand_name__icontains=search_query)
             | Q(product__description__icontains=search_query)
         )
-
-    # Apply brand filter
     if brand_filter:
         products = products.filter(product__brand__id__in=brand_filter)
-
-    # Apply type filter
     if type_filter:
         products = products.filter(product__type__in=type_filter)
-
-    # Apply connectivity filter
     if connectivity_filter:
         products = products.filter(product__connectivity__in=connectivity_filter)
 
-    # Apply sorting
+    if sort_by == "price_low_high" or sort_by == "price_high_low":
+        for product in products:
+            product.discounted_price = product.discounted_price()
+            
+    # sorting
     if sort_by == "popularity":
         products = products.annotate(popularity=Count("order_items")).order_by("-popularity")
     elif sort_by == "price_low_high":
-        products = products.order_by("price")
+        products = sorted(products, key=lambda p: p.discounted_price)
     elif sort_by == "price_high_low":
-        products = products.order_by("-price")
+        products = sorted(products, key=lambda p: p.discounted_price, reverse=True)
     elif sort_by == "avg_rating":
         products = products.order_by("-avg_rating")
     elif sort_by == "new_arrivals":
@@ -485,21 +490,29 @@ def products_listing(request):
         products = products.order_by("-product_name")
     else:  # 'featured' or default
         products = products.order_by("-stock")
+        
+    page = request.GET.get('page', 1)
+    paginator = Paginator(products, 20)  # items per page is 20
+    try:
+        products = paginator.page(page)
+    except PageNotAnInteger:
+        products = paginator.page(1)
+    except EmptyPage:
+        products = paginator.page(paginator.num_pages)
 
-    return render(
-        request,
-        "store/products_list.html",
-        {
-            "brands": brands,
-            "productModel": Product,
-            "products": products,
-            "current_sort": sort_by,
-            "search_query": search_query,
-            "brand_filter": brand_filter,
-            "type_filter": type_filter,
-            "connectivity_filter": connectivity_filter
-        },
-    )
+    context = {
+        "brands": brands,
+        "productModel": Product,
+        "products": products,
+        "current_sort": sort_by,
+        "search_query": search_query,
+        "brand_filter": brand_filter,
+        "type_filter": type_filter,
+        "connectivity_filter": connectivity_filter,
+        "page_obj": products,
+    }
+
+    return render(request, "store/products_list.html", context)
 
 
 def view_variant(request, variant_id):
