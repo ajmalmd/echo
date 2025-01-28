@@ -60,19 +60,6 @@ class OTP(models.Model):
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(default=now)
     resend_count = models.IntegerField(default=0)
-
-
-class Review(models.Model):
-    product = models.ForeignKey(
-        "manager.Product", on_delete=models.CASCADE, related_name="reviews"
-    )
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    rating = models.IntegerField()
-    review_text = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.fullname} - {self.product.name}"
     
 
 #Wishlist Model
@@ -324,6 +311,8 @@ class OrderItem(models.Model):
     status = models.CharField(
         max_length=20, choices=ORDER_ITEM_STATUS_CHOICES, default="pending"
     )
+    rating = models.IntegerField(null=True, blank=True)
+    review = models.TextField(max_length=600, null=True, blank=True)
 
     def sub_total(self):
         """

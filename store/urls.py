@@ -14,9 +14,12 @@ urlpatterns = [
     # profile
     path("profile/", views.profile, name="profile"),
     path("addresses/", views.addresses, name="addresses"),
+    
     path("orders/", views.orders, name="my_orders"),
     path("order/<int:item_id>/", views.view_order, name="view_order"),
     path('order/<int:item_id>/invoice/', views.download_invoice, name='download_invoice'),
+    path('submit-rating/', views.submit_rating, name='submit_rating'),
+    
     path("wallet/", views.wallet, name="wallet"),
     path("change-password/", views.change_password, name="change_password"),
     path("save-address/", views.save_address, name="save_address"),

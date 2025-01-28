@@ -336,6 +336,12 @@
         const formData = new FormData(filterForm)
         const currentSort = sortSelect.value
         formData.append("sort", currentSort)
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const search = urlParams.get('search')
+        if (search) {
+          formData.append("search", search)
+        }
       
         fetch(window.location.pathname, {
           method: "POST",

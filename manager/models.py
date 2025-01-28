@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from django.utils import timezone
+from django.db.models import Avg, Count
 
 # Brand Model
 class Brand(models.Model):
@@ -138,6 +139,23 @@ class ProductVariant(models.Model):
         else:  # fixed amount
             discount_amount = offer.discount_value
         return max(self.price - discount_amount, 0)
+    
+    def average_rating(self):
+        """
+        Calculate the average rating for this product variant.
+        Returns the average rating as a float, or None if no ratings exist.
+        """
+        # Aggregate the average rating from all related OrderItems
+        avg_rating = self.order_items.aggregate(Avg('rating'))['rating__avg']
+        return round(avg_rating, 1) if avg_rating is not None else None
+    
+    def users_rated(self):
+        """
+        Calculate the count of rated users for this product variant.
+        """
+        # Aggregate the count of rated users from all related OrderItems
+        count_rated = self.order_items.aggregate(Count('rating'))['rating__count']
+        return count_rated if count_rated is not None else None
 
     def __str__(self):
         return f"{self.name} - {self.product.name}"

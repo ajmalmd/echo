@@ -10,7 +10,7 @@ from django.utils.timezone import now, timedelta
 from datetime import datetime, date
 from django.views.decorators.cache import never_cache
 from django.db.models import Avg, Count, F, Q, Value
-from django.db.models.functions import Concat
+from django.db.models.functions import Concat, Coalesce
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -412,6 +412,7 @@ def products_listing(request):
         connectivity_filter = request.POST.getlist("connectivity")
         sort_by = request.POST.get("sort", "featured")
         page = request.POST.get('page', 1)
+        search_query = request.POST.get('search', '')
         
         # Construct the URL with updated parameters
         url_params = []
@@ -425,6 +426,8 @@ def products_listing(request):
             url_params.append(f"sort={sort_by}")
         if page:
             url_params.append(f"page={page}")
+        if search_query:
+            url_params.append(f"search={search_query}")
         
         new_url = f"{request.path}?{'&'.join(url_params)}"
         
@@ -438,6 +441,7 @@ def products_listing(request):
     connectivity_filter = request.GET.getlist("connectivity")
     sort_by = request.GET.get("sort", "featured")
     search_query = request.GET.get("search", "")
+    
 
     products = (
         ProductVariant.objects.filter(
@@ -450,8 +454,7 @@ def products_listing(request):
         .annotate(
             product_name=Concat(F("product__name"), Value(" - "), F("name")),
             brand_name=F("product__brand__name"),
-            avg_rating=Avg("product__reviews__rating"),
-            review_count=Count("product__reviews"),
+            avg_rating=Coalesce(Avg('order_items__rating'), 0.0),
         )
     )
     
@@ -1658,7 +1661,22 @@ def download_invoice(request, item_id):
     response['Content-Disposition'] = f'attachment; filename="Invoice_{order_item.order.id}_{order_item.id}.pdf"'
     return response
 
+@require_POST
+@csrf_exempt
+def submit_rating(request):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        item_id = request.POST.get('item_id')
+        rating = request.POST.get('rating')
 
+        order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+
+        if order_item.status == 'delivered':
+            order_item.rating = rating
+            order_item.save()
+            return JsonResponse({'success': True, 'message': 'Rating submitted successfully'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Cannot rate this item'}, status=400)
+    return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
 
 
 @login_required(login_url="login")

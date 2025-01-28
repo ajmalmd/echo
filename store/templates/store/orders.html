@@ -1,12 +1,30 @@
 {% extends 'store/base.html' %}
 {% load static %}
+{% block style %}
+  <style>
+    .star-rating {
+        display: inline-block;
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .star-rating .star {
+        color: #ddd;
+        transition: color 0.2s;
+    }
+    .star-rating .star:hover,
+    .star-rating .star.hover {
+        color: #191919;
+    }
+    .star-rating .star.active {
+        color: #191919;
+    }
+  </style>
+{% endblock %}
 {% block content %}
   <div class="container mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <!-- Sidebar -->
-      <div class="md:col-span-1">
-        {% include 'store/profile_partials.html' with active_tab='orders' %}
-      </div>
+      <div class="md:col-span-1">{% include 'store/profile_partials.html' with active_tab='orders' %}</div>
       <!-- Main Content -->
       <div class="md:col-span-3">
         <div class="bg-white shadow rounded-lg p-6">
@@ -18,8 +36,12 @@
                   <p class="font-medium text-lg mb-2">{{ order }}</p>
                   {% if order.razorpay_order_id and order.razorpay_payment_status == 'created' %}
                     <div>
-                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-300 razorpay-order-cancel-btn" data-order-id="{{ order.id }}" data-razorpay-order-id="{{ order.razorpay_order_id }}">Cancel</button>
-                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 razorpay-payment-btn" data-order-id="{{ order.id }}" data-razorpay-order-id="{{ order.razorpay_order_id }}">Complete Payment</button>
+                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-300 razorpay-order-cancel-btn"
+                              data-order-id="{{ order.id }}"
+                              data-razorpay-order-id="{{ order.razorpay_order_id }}">Cancel</button>
+                      <button class="px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 razorpay-payment-btn"
+                              data-order-id="{{ order.id }}"
+                              data-razorpay-order-id="{{ order.razorpay_order_id }}">Complete Payment</button>
                     </div>
                   {% endif %}
                 </div>
@@ -29,39 +51,52 @@
                       <div class="flex flex-wrap md:flex-nowrap">
                         <!-- Image -->
                         <div class="w-full md:w-1/5 md:pr-4 mb-4 md:mb-0">
-                          <img src="{{ order_item.product_variant.images.first.image_path.url }}" alt="{{ item.product_variant.name }}" class="w-full h-32 object-contain rounded-md" />
+                          <img src="{{ order_item.product_variant.images.first.image_path.url }}"
+                               alt="{{ item.product_variant.name }}"
+                               class="w-full h-32 object-contain rounded-md" />
                         </div>
                         <!-- Details -->
                         <div class="w-full md:w-4/5 flex flex-col justify-between">
                           <div class="flex justify-between items-start mb-2">
                             <div>
-                              <p class="font-semibold">{{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}</p>
+                              <p class="font-semibold">
+                                {{ order_item.product_variant.product.brand }} {{ order_item.product_variant.product }} - {{ order_item.product_variant.name }}
+                              </p>
                               <p class="text-sm text-gray-600 mt-1">Quantity: {{ order_item.quantity }}</p>
                             </div>
-                            <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %}
-                                 bg-green-100 text-green-800
-                              {% elif order_item.status == 'pending' %}
-                                 bg-yellow-100 text-yellow-800
-                              {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %}
-                                 bg-red-100 text-red-800
-                              {% else %}
-                                 bg-gray-100 text-gray-800
-                              {% endif %} ">{{ order_item.get_status_display }}</p>
+                            <p class="text-sm font-medium px-2 py-1 rounded-full {% if order_item.status == 'shipped' or order_item.status == 'delivered' %} bg-green-100 text-green-800 {% elif order_item.status == 'pending' %} bg-yellow-100 text-yellow-800 {% elif order_item.status == 'cancelled' or order_item.status == 'return_rejected' %} bg-red-100 text-red-800 {% else %} bg-gray-100 text-gray-800 {% endif %} ">
+                              {{ order_item.get_status_display }}
+                            </p>
                           </div>
                           <!-- Buttons -->
                           <div class="flex justify-end space-x-2 mt-2">
                             {% if order_item.status == 'pending' or order_item.status == 'confirmed' %}
                               {% if order.order_payment == 'cod' or order.razorpay_payment_status == 'paid' or order.order_payment == 'wallet' %}
-                                <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Cancel</button>
+                                <button class="px-3 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-btn"
+                                        data-item-id="{{ order_item.id }}"
+                                        data-order-id="{{ order.id }}">Cancel</button>
                               {% endif %}
                             {% endif %}
                             {% if order_item.status == 'delivered' %}
-                              <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Return</button>
+                              <button class="px-3 py-1 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-600 transition duration-300 return-btn"
+                                      data-item-id="{{ order_item.id }}"
+                                      data-order-id="{{ order.id }}">Return</button>
                             {% endif %}
                             {% if order_item.status == 'return_requested' %}
-                              <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn" data-item-id="{{ order_item.id }}" data-order-id="{{ order.id }}">Cancel Return</button>
+                              <button class="px-4 py-1 text-sm font-medium text-white bg-red-700 rounded-md hover:bg-red-600 transition duration-300 cancel-return-btn"
+                                      data-item-id="{{ order_item.id }}"
+                                      data-order-id="{{ order.id }}">Cancel Return</button>
                             {% endif %}
                           </div>
+                          <!-- Star Rating -->
+                          {% if order_item.status == 'delivered' %}
+                            <div class="star-rating mt-2" data-item-id="{{ order_item.id }}">
+                              {% for i in "12345" %}
+                                <span class="star {% if order_item.rating and order_item.rating >= forloop.counter %}active{% endif %}"
+                                      data-rating="{{ forloop.counter }}">&#9733;</span>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
                         </div>
                       </div>
                     </a>
@@ -72,7 +107,8 @@
           {% else %}
             <div class="text-center py-8">
               <p class="text-gray-500">Orders are empty</p>
-              <a href="{% url 'store_products' %}" class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
+              <a href="{% url 'store_products' %}"
+                 class="text-blue-600 hover:underline mt-2 inline-block">Continue Shopping</a>
             </div>
           {% endif %}
         </div>
@@ -94,18 +130,18 @@
         },
         body: `item_id=${itemId}&order_id=${orderId}&action=${action}`
       })
-        .then((response) => response.json())
-        .then((data) => {
-          location.reload()
+      .then((response) => response.json())
+      .then((data) => {
+        location.reload()
+      })
+      .catch((error) => {
+        console.error('Error:', error)
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'An error occurred'
         })
-        .catch((error) => {
-          console.error('Error:', error)
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'An error occurred'
-          })
-        })
+      })
     }
     
     function initializeRazorpay(orderId, razorpayOrderId) {
@@ -268,6 +304,99 @@
           cancelRazorpayOrder(orderId)
         })
       })
+
+      const starRatings = document.querySelectorAll('.star-rating');
+
+        starRatings.forEach(ratingContainer => {
+            const stars = ratingContainer.querySelectorAll('.star');
+            const itemId = ratingContainer.dataset.itemId;
+
+            // Highlight stars based on the current rating
+            const activeRating = ratingContainer.querySelector('.star.active');
+            if (activeRating) {
+                highlightStars(stars, activeRating.dataset.rating);
+            }
+
+            stars.forEach(star => {
+                star.addEventListener('mouseover', function () {
+                    const rating = this.dataset.rating;
+                    highlightStars(stars, rating);
+                });
+
+                star.addEventListener('mouseout', function () {
+                    const activeRating = ratingContainer.querySelector('.star.active');
+                    if (activeRating) {
+                        highlightStars(stars, activeRating.dataset.rating);
+                    } else {
+                        resetStars(stars);
+                    }
+                });
+
+                star.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const rating = this.dataset.rating;
+                    submitRating(itemId, rating);
+                    stars.forEach(s => s.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        function highlightStars(stars, rating) {
+            stars.forEach(star => {
+                if (star.dataset.rating <= rating) {
+                    star.classList.add('hover');
+                } else {
+                    star.classList.remove('hover');
+                }
+            });
+        }
+
+        function resetStars(stars) {
+            stars.forEach(star => star.classList.remove('hover'));
+        }
+
+        function submitRating(itemId, rating) {
+            fetch('{% url "submit_rating" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `item_id=${itemId}&rating=${rating}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Rating Submitted',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while submitting the rating',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            });
+        }
     })
   </script>
 {% endblock %}
+
