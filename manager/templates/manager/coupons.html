@@ -1,16 +1,17 @@
 {% extends 'manager/base.html' %}
-{% block header %}
-  Coupons
-{% endblock %}
+{% block header %}Coupons{% endblock %}
 {% block content %}
   <main class="p-6">
     <div class="bg-gray-900 p-4 rounded-md">
       <!-- Search Bar -->
       <div class="mb-4 flex justify-between items-center">
-        <input type="text" class="bg-gray-700 text-white px-4 py-2 rounded-md" placeholder="Search" />
-        <button id="add-coupon-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md" data-modal-toggle="add-coupon-modal">Add New Coupon</button>
+        <input type="text"
+               class="bg-gray-700 text-white px-4 py-2 rounded-md"
+               placeholder="Search" />
+        <button id="add-coupon-btn"
+                class="bg-blue-600 text-white px-4 py-2 rounded-md"
+                data-modal-toggle="add-coupon-modal">Add New Coupon</button>
       </div>
-
       <!-- Coupons Table -->
       <table class="w-full text-center text-sm bg-gray-800 rounded-md">
         <thead class="bg-gray-700 text-gray-300">
@@ -40,9 +41,9 @@
               </td>
               <td class="px-4 py-2">₹{{ coupon.min_purchase_amount }}</td>
               {% if coupon.max_discount_amount %}
-              <td class="px-4 py-2">₹{{ coupon.max_discount_amount }}</td>
+                <td class="px-4 py-2">₹{{ coupon.max_discount_amount }}</td>
               {% else %}
-              <td class="px-4 py-2">-</td>
+                <td class="px-4 py-2">-</td>
               {% endif %}
               <td class="px-4 py-2">{{ coupon.start_date|date:'Y-m-d' }}</td>
               <td class="px-4 py-2">{{ coupon.end_date|date:'Y-m-d' }}</td>
@@ -57,10 +58,14 @@
               </td>
               <!-- Actions -->
               <td class="px-4 py-2 justify-center flex space-x-2">
-                <button class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500 edit-coupon-btn" data-coupon-id="{{ coupon.id }}" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="bg-green-600 px-3 py-1 rounded-md text-white hover:bg-green-500 edit-coupon-btn"
+                        data-coupon-id="{{ coupon.id }}"
+                        title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
                 <button data-coupon-id="{{ coupon.id }}"
-                  class="bg-{% if coupon.is_active %}red{% else %}yellow{% endif %}-600 px-3 py-1 rounded-md text-white hover:bg-{% if coupon.is_active %}red{% else %}yellow{% endif %}-500 toggle-status-btn"
-                  title="{% if coupon.is_active %}Block{% else %}Unblock{% endif %}">
+                        class="bg-{% if coupon.is_active %}red{% else %}yellow{% endif %}-600 px-3 py-1 rounded-md text-white hover:bg-{% if coupon.is_active %}red{% else %}yellow{% endif %}-500 toggle-status-btn"
+                        title="{% if coupon.is_active %}Block{% else %}Unblock{% endif %}">
                   <i class="fas fa-{% if coupon.is_active %}ban{% else %}check-circle{% endif %}"></i>
                 </button>
               </td>
@@ -68,43 +73,53 @@
           {% endfor %}
         </tbody>
       </table>
-
       <!-- Pagination -->
       <div class="mt-4 flex justify-center space-x-2">
         {% if page_obj.has_previous %}
-          <a href="?page=1" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">First</a>
-          <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Previous</a>
+          <a href="?page=1"
+             class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}"
+             class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Previous</a>
         {% else %}
           <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">First</span>
           <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Previous</span>
         {% endif %}
-
         <span class="bg-gray-700 text-white px-4 py-2 rounded-md">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-
         {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Next</a>
-          <a href="?page={{ page_obj.paginator.num_pages }}" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Last</a>
+          <a href="?page={{ page_obj.next_page_number }}"
+             class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}"
+             class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Last</a>
         {% else %}
           <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Next</span>
           <span class="bg-gray-700 text-white px-4 py-2 rounded-md cursor-not-allowed">Last</span>
         {% endif %}
       </div>
-
       <!-- Add Coupon Modal -->
-      <div id="add-coupon-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+      <div id="add-coupon-modal"
+           class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
         <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
-          <button onclick="toggleAddModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
+          <button onclick="toggleAddModal()"
+                  class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
           <h2 class="text-xl text-white mb-4">Add New Coupon</h2>
           <form id="add-coupon-form" class="space-y-4">
             {% csrf_token %}
             <div>
               <label for="add-code" class="block mb-2 text-white">Coupon Code</label>
-              <input type="text" name="code" id="add-code" placeholder="Coupon Code" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+              <input type="text"
+                     name="code"
+                     id="add-code"
+                     placeholder="Coupon Code"
+                     class="w-full bg-gray-800 p-2 rounded-md text-white"
+                     required />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="add-discount-type" class="block mb-2 text-white">Discount Type</label>
-                <select id="add-discount-type" name="discount_type" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+                <select id="add-discount-type"
+                        name="discount_type"
+                        class="w-full bg-gray-800 p-2 rounded-md text-white"
+                        required>
                   <option value="" disabled selected>Select discount type</option>
                   <option value="percentage">Percentage</option>
                   <option value="fixed">Fixed Amount</option>
@@ -112,99 +127,178 @@
               </div>
               <div>
                 <label for="add-discount-value" class="block mb-2 text-white">Discount Value</label>
-                <input type="number" name="discount_value" id="add-discount-value" placeholder="Discount Value" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="number"
+                       name="discount_value"
+                       id="add-discount-value"
+                       placeholder="Discount Value"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="add-start-date" class="block mb-2 text-white">Start Date</label>
-                <input type="date" name="start_date" id="add-start-date" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="date"
+                       name="start_date"
+                       id="add-start-date"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
               <div>
                 <label for="add-end-date" class="block mb-2 text-white">End Date</label>
-                <input type="date" name="end_date" id="add-end-date" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="date"
+                       name="end_date"
+                       id="add-end-date"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="add-min-purchase" class="block mb-2 text-white">Min Purchase Amount</label>
-                <input type="number" name="min_purchase" id="add-min-purchase" placeholder="Min Purchase Amount" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="number"
+                       name="min_purchase"
+                       id="add-min-purchase"
+                       placeholder="Min Purchase Amount"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
               <div id="add-max-discount-container">
                 <label for="add-max-discount" class="block mb-2 text-white">Max Discount Amount</label>
-                <input type="number" name="max_discount" id="add-max-discount" placeholder="Max Discount Amount" class="w-full bg-gray-800 p-2 rounded-md text-white" />
+                <input type="number"
+                       name="max_discount"
+                       id="add-max-discount"
+                       placeholder="Max Discount Amount"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white" />
               </div>
             </div>
             <div>
               <label for="add-usage-limit" class="block mb-2 text-white">Usage Limit</label>
-              <input type="number" name="usage_limit" id="add-usage-limit" placeholder="Usage Limit" class="w-full bg-gray-800 p-2 rounded-md text-white" required min="1" />
+              <input type="number"
+                     name="usage_limit"
+                     id="add-usage-limit"
+                     placeholder="Usage Limit"
+                     class="w-full bg-gray-800 p-2 rounded-md text-white"
+                     required
+                     min="1" />
             </div>
             <div>
               <label for="add-description" class="block mb-2 text-white">Description</label>
-              <textarea name="description" id="add-description" placeholder="Description" class="w-full bg-gray-800 p-2 rounded-md text-white" required></textarea>
+              <textarea name="description"
+                        id="add-description"
+                        placeholder="Description"
+                        class="w-full bg-gray-800 p-2 rounded-md text-white"
+                        required></textarea>
             </div>
             <div class="items-center px-4 py-3">
-              <button id="add-coupon-submit" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">Add Coupon</button>
+              <button id="add-coupon-submit"
+                      class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                Add Coupon
+              </button>
             </div>
           </form>
         </div>
       </div>
-
       <!-- Edit Coupon Modal -->
-      <div id="edit-coupon-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+      <div id="edit-coupon-modal"
+           class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
         <div class="bg-gray-900 p-6 rounded-md w-full max-w-lg relative">
-          <button onclick="toggleEditModal()" class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
+          <button onclick="toggleEditModal()"
+                  class="absolute top-2 right-2 text-white hover:text-gray-400">&times;</button>
           <h2 class="text-xl text-white mb-4">Edit Coupon</h2>
           <form id="edit-coupon-form" class="space-y-4">
             {% csrf_token %}
             <input type="hidden" name="coupon_id" id="edit-coupon-id">
             <div>
               <label for="edit-code" class="block mb-2 text-white">Coupon Code</label>
-              <input type="text" name="code" id="edit-code" placeholder="Coupon Code" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+              <input type="text"
+                     name="code"
+                     id="edit-code"
+                     placeholder="Coupon Code"
+                     class="w-full bg-gray-800 p-2 rounded-md text-white"
+                     required />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="edit-discount-type" class="block mb-2 text-white">Discount Type</label>
-                <select id="edit-discount-type" name="discount_type" class="w-full bg-gray-800 p-2 rounded-md text-white" required>
+                <select id="edit-discount-type"
+                        name="discount_type"
+                        class="w-full bg-gray-800 p-2 rounded-md text-white"
+                        required>
                   <option value="percentage">Percentage</option>
                   <option value="fixed">Fixed Amount</option>
                 </select>
               </div>
               <div>
                 <label for="edit-discount-value" class="block mb-2 text-white">Discount Value</label>
-                <input type="number" name="discount_value" id="edit-discount-value" placeholder="Discount Value" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="number"
+                       name="discount_value"
+                       id="edit-discount-value"
+                       placeholder="Discount Value"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="edit-start-date" class="block mb-2 text-white">Start Date</label>
-                <input type="date" name="start_date" id="edit-start-date" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="date"
+                       name="start_date"
+                       id="edit-start-date"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
               <div>
                 <label for="edit-end-date" class="block mb-2 text-white">End Date</label>
-                <input type="date" name="end_date" id="edit-end-date" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="date"
+                       name="end_date"
+                       id="edit-end-date"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="edit-min-purchase" class="block mb-2 text-white">Min Purchase Amount</label>
-                <input type="number" name="min_purchase" id="edit-min-purchase" placeholder="Min Purchase Amount" class="w-full bg-gray-800 p-2 rounded-md text-white" required />
+                <input type="number"
+                       name="min_purchase"
+                       id="edit-min-purchase"
+                       placeholder="Min Purchase Amount"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white"
+                       required />
               </div>
               <div id="edit-max-discount-container">
                 <label for="edit-max-discount" class="block mb-2 text-white">Max Discount Amount</label>
-                <input type="number" name="max_discount" id="edit-max-discount" placeholder="Max Discount Amount" class="w-full bg-gray-800 p-2 rounded-md text-white" />
+                <input type="number"
+                       name="max_discount"
+                       id="edit-max-discount"
+                       placeholder="Max Discount Amount"
+                       class="w-full bg-gray-800 p-2 rounded-md text-white" />
               </div>
             </div>
             <div>
               <label for="edit-usage-limit" class="block mb-2 text-white">Usage Limit</label>
-              <input type="number" name="usage_limit" id="edit-usage-limit" placeholder="Usage Limit" class="w-full bg-gray-800 p-2 rounded-md text-white" required min="1" />
+              <input type="number"
+                     name="usage_limit"
+                     id="edit-usage-limit"
+                     placeholder="Usage Limit"
+                     class="w-full bg-gray-800 p-2 rounded-md text-white"
+                     required
+                     min="1" />
             </div>
             <div>
               <label for="edit-description" class="block mb-2 text-white">Description</label>
-              <textarea name="description" id="edit-description" placeholder="Description" class="w-full bg-gray-800 p-2 rounded-md text-white" required></textarea>
+              <textarea name="description"
+                        id="edit-description"
+                        placeholder="Description"
+                        class="w-full bg-gray-800 p-2 rounded-md text-white"
+                        required></textarea>
             </div>
             <div class="items-center px-4 py-3">
-              <button id="edit-coupon-submit" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">Update Coupon</button>
+              <button id="edit-coupon-submit"
+                      class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                Update Coupon
+              </button>
             </div>
           </form>
         </div>
@@ -212,161 +306,78 @@
     </div>
   </main>
 {% endblock %}
-
 {% block script %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-  // Add Coupon Modal
-  const addCouponBtn = document.getElementById('add-coupon-btn');
-  const addCouponModal = document.getElementById('add-coupon-modal');
-  const addCouponForm = document.getElementById('add-coupon-form');
-  const addDiscountType = document.getElementById('add-discount-type');
-  const addMaxDiscountContainer = document.getElementById('add-max-discount-container');
-
-  addCouponBtn.addEventListener('click', () => {
-    addCouponModal.classList.remove('hidden');
-  });
-
-  addDiscountType.addEventListener('change', () => {
-    if (addDiscountType.value === 'fixed') {
-      addMaxDiscountContainer.classList.add('hidden');
-    } else {
-      addMaxDiscountContainer.classList.remove('hidden');
-    }
-  });
-
-  addCouponForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(addCouponForm);
-    try {
-      const response = await fetch('{% url "coupons" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        addCouponModal.classList.add('hidden');
-        location.reload();
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: data.message,
-        });
-      }
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error,
-      });
-    }
-  });
-
-  function toggleAddModal() {
-    addCouponModal.classList.toggle('hidden');
-  }
-
-  // Edit Coupon Modal
-  const editCouponModal = document.getElementById('edit-coupon-modal');
-  const editCouponForm = document.getElementById('edit-coupon-form');
-  const editDiscountType = document.getElementById('edit-discount-type');
-  const editMaxDiscountContainer = document.getElementById('edit-max-discount-container');
-
-  document.querySelectorAll('.edit-coupon-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const couponId = btn.dataset.couponId;
-      // Fetch coupon details and populate the form
-      fetch('{% url "get_coupon_details" %}', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-          coupon_id: couponId
-        })
-      })
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('edit-coupon-id').value = data.id;
-          document.getElementById('edit-code').value = data.code;
-          document.getElementById('edit-description').value = data.description;
-          document.getElementById('edit-discount-type').value = data.discount_type;
-          document.getElementById('edit-discount-value').value = data.discount_value;
-          document.getElementById('edit-min-purchase').value = data.min_purchase_amount;
-          document.getElementById('edit-max-discount').value = data.max_discount_amount;
-          document.getElementById('edit-start-date').value = data.start_date;
-          document.getElementById('edit-end-date').value = data.end_date;
-          document.getElementById('edit-usage-limit').value = data.usage_limit;
-
-          if (data.discount_type === 'fixed') {
-            editMaxDiscountContainer.classList.add('hidden');
-          } else {
-            editMaxDiscountContainer.classList.remove('hidden');
-          }
-        });
-      editCouponModal.classList.remove('hidden');
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    // Add Coupon Modal
+    const addCouponBtn = document.getElementById('add-coupon-btn');
+    const addCouponModal = document.getElementById('add-coupon-modal');
+    const addCouponForm = document.getElementById('add-coupon-form');
+    const addDiscountType = document.getElementById('add-discount-type');
+    const addMaxDiscountContainer = document.getElementById('add-max-discount-container');
+    
+    addCouponBtn.addEventListener('click', () => {
+      addCouponModal.classList.remove('hidden');
+      addCouponForm.reset()
     });
-  });
-
-  editDiscountType.addEventListener('change', () => {
-    if (editDiscountType.value === 'fixed') {
-      editMaxDiscountContainer.classList.add('hidden');
-    } else {
-      editMaxDiscountContainer.classList.remove('hidden');
-    }
-  });
-
-  editCouponForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(editCouponForm);
-    try {
-      const response = await fetch('{% url "edit_coupon" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        editCouponModal.classList.add('hidden');
-        location.reload();
+    
+    addDiscountType.addEventListener('change', () => {
+      if (addDiscountType.value === 'fixed') {
+        addMaxDiscountContainer.classList.add('hidden');
       } else {
+        addMaxDiscountContainer.classList.remove('hidden');
+      }
+    });
+    
+    addCouponForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(addCouponForm);
+      try {
+        const response = await fetch('{% url "coupons" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          addCouponModal.classList.add('hidden');
+          location.reload();
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.message,
+          });
+        }
+      } catch (error) {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: data.message,
+          text: error,
         });
       }
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error,
-      });
+    });
+    
+    function toggleAddModal() {
+      addCouponModal.classList.toggle('hidden');
     }
-  });
-
-  function toggleEditModal() {
-    editCouponModal.classList.toggle('hidden');
-  }
-
-  // Toggle Coupon Status
-  document.querySelectorAll('.toggle-status-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const couponId = btn.dataset.couponId;
-
-      fetch('{% url "toggle_coupon_status" %}', {
-        method: 'POST',
-        headers: {
+    
+    // Edit Coupon Modal
+    const editCouponModal = document.getElementById('edit-coupon-modal');
+    const editCouponForm = document.getElementById('edit-coupon-form');
+    const editDiscountType = document.getElementById('edit-discount-type');
+    const editMaxDiscountContainer = document.getElementById('edit-max-discount-container');
+    
+    document.querySelectorAll('.edit-coupon-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const couponId = btn.dataset.couponId;
+        // Fetch coupon details and populate the form
+        fetch('{% url "get_coupon_details" %}', {
+          method: 'POST',
+          headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
           'X-CSRFToken': '{{ csrf_token }}'
@@ -377,21 +388,51 @@
       })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          const isActive = data.coupon_status === 'active';
-          btn.classList.toggle('bg-red-600', isActive);
-          btn.classList.toggle('hover:bg-red-500', isActive);
-          btn.classList.toggle('bg-yellow-600', !isActive);
-          btn.classList.toggle('hover:bg-yellow-500', !isActive);
-          btn.setAttribute('title', isActive ? 'Block' : 'Unblock');
-          btn.innerHTML = `<i class="fas fa-${isActive ? 'ban' : 'check-circle'}"></i>`;
-
-          const statusCell = btn.closest('tr').querySelector('td:nth-child(9) span');
-          if (statusCell) {
-            statusCell.textContent = isActive ? 'Active' : 'Inactive';
-            statusCell.classList.toggle('text-green-500', isActive);
-            statusCell.classList.toggle('text-red-500', !isActive);
+        document.getElementById('edit-coupon-id').value = data.id;
+        document.getElementById('edit-code').value = data.code;
+        document.getElementById('edit-description').value = data.description;
+        document.getElementById('edit-discount-type').value = data.discount_type;
+        document.getElementById('edit-discount-value').value = data.discount_value;
+          document.getElementById('edit-min-purchase').value = data.min_purchase_amount;
+          document.getElementById('edit-max-discount').value = data.max_discount_amount;
+          document.getElementById('edit-start-date').value = data.start_date;
+          document.getElementById('edit-end-date').value = data.end_date;
+          document.getElementById('edit-usage-limit').value = data.usage_limit;
+          
+          if (data.discount_type === 'fixed') {
+            editMaxDiscountContainer.classList.add('hidden');
+          } else {
+            editMaxDiscountContainer.classList.remove('hidden');
           }
+        });
+        editCouponModal.classList.remove('hidden');
+      });
+    });
+    
+    editDiscountType.addEventListener('change', () => {
+      if (editDiscountType.value === 'fixed') {
+        editMaxDiscountContainer.classList.add('hidden');
+      } else {
+        editMaxDiscountContainer.classList.remove('hidden');
+      }
+    });
+    
+    editCouponForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(editCouponForm);
+      try {
+        const response = await fetch('{% url "edit_coupon" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          editCouponModal.classList.add('hidden');
+          location.reload();
         } else {
           Swal.fire({
             icon: 'error',
@@ -399,17 +440,71 @@
             text: data.message,
           });
         }
-      })
-      .catch(error => {
-        console.error('Error:', error);
+      } catch (error) {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'An unexpected error occurred.',
+          text: error,
+        });
+      }
+    });
+    
+    function toggleEditModal() {
+      editCouponModal.classList.toggle('hidden');
+    }
+    
+    
+    
+    // Toggle Coupon Status
+    document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const couponId = btn.dataset.couponId;
+        
+        fetch('{% url "toggle_coupon_status" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({
+            coupon_id: couponId
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const isActive = data.coupon_status === 'active';
+            btn.classList.toggle('bg-red-600', isActive);
+            btn.classList.toggle('hover:bg-red-500', isActive);
+            btn.classList.toggle('bg-yellow-600', !isActive);
+            btn.classList.toggle('hover:bg-yellow-500', !isActive);
+            btn.setAttribute('title', isActive ? 'Block' : 'Unblock');
+            btn.innerHTML = `<i class="fas fa-${isActive ? 'ban' : 'check-circle'}"></i>`;
+            
+            const statusCell = btn.closest('tr').querySelector('td:nth-child(9) span');
+            if (statusCell) {
+              statusCell.textContent = isActive ? 'Active' : 'Inactive';
+              statusCell.classList.toggle('text-green-500', isActive);
+              statusCell.classList.toggle('text-red-500', !isActive);
+            }
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: data.message,
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An unexpected error occurred.',
+          });
         });
       });
     });
-  });
-</script>
+  </script>
 {% endblock %}
-
