@@ -670,7 +670,7 @@ def order_view(request, order_id):
         try:
             order_item = OrderItem.objects.get(id=item_id)
             order_item.status = new_status
-            if new_status == "cancelled":
+            if new_status == "cancelled" or new_status == "return_approved":
                 variant = ProductVariant.objects.get(id=order_item.product_variant.id)
                 variant.stock += order_item.quantity
                 
@@ -1151,7 +1151,7 @@ def report(request):
 
     # Calculate summary statistics
     overall_sales_count = orders.count()
-    overall_order_amount = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    overall_order_amount = orders.aggregate(Sum('total_price_after_discount'))['total_price_after_discount__sum'] or 0
     overall_discount = orders.aggregate(Sum('total_discount'))['total_discount__sum'] or 0
 
     context = {

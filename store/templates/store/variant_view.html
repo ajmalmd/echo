@@ -124,13 +124,15 @@
         {% elif variant.stock %}
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-2 sticky bottom-0 py-2">
-            {% comment %} <button class="flex-1 bg-orange-400 text-white px-4 py-3 rounded hover:bg-orange-500 transition text-sm sm:text-base font-medium">
-              BUY NOW
-            </button> {% endcomment %}
             <button id="add-to-cart"
                     data-variant-id="{{ variant.id }}"
                     class=" bg-gray-900 text-white px-4 py-3 rounded hover:bg-gray-800 transition text-sm sm:text-base font-medium">
               ADD TO CART
+            </button>
+            <button id="add-wishlist"
+                    data-variant-id="{{ variant.id }}"
+                    class="bg-red-700 text-white px-4 py-3 rounded hover:bg-red-500 transition text-sm sm:text-base font-medium">
+              {% if variant.id in wishlist %}WISHLISTED {% else %} ADD TO WISHLIST{% endif %}
             </button>
           </div>
         {% else %}
@@ -290,6 +292,43 @@
         addToCartBtn.addEventListener('click', function () {
           const variantId = this.dataset.variantId
           addToCart(variantId)
+        })
+      }
+
+      const addWishlist = document.getElementById('add-wishlist')
+      if (addWishlist) {
+        addWishlist.addEventListener('click', function () {
+          const variantId = this.dataset.variantId
+          fetch(`{% url 'toggle_wishlist' %}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrfToken,
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              variant_id: variantId
+            })
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: data.message,
+                  showConfirmButton: false,
+                  timer: 2000
+                })
+                window.location.reload()
+              } else {
+                Swal.fire({
+                  icon: 'info',
+                  title: data.message,
+                  showConfirmButton: false,
+                  timer: 2000
+                })
+              }
+            })
         })
       }
     
