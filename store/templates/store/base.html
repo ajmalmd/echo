@@ -8,6 +8,8 @@
         Echo
       {% endblock %}
     </title>
+    {% load static %}
+    <link rel="icon" type="image/x-icon" href="{% static 'store/images/favicon.ico' %}">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -111,9 +113,9 @@
                         <li class="hover:bg-gray-100">
                           <a href="{% url 'wallet' %}" class="block px-4 py-2">Wallet</a>
                         </li>
-                        <li class="hover:bg-gray-100">
+                        {% comment %} <li class="hover:bg-gray-100">
                           <a href="" class="block px-4 py-2">Coupon</a>
-                        </li>
+                        </li> {% endcomment %}
                         <li class="hover:bg-gray-100">
                           <a href="{% url 'change_password' %}" class="block px-4 py-2">Change Password</a>
                         </li>
@@ -173,9 +175,9 @@
                 <li>
                   <a href="{% url 'wallet' %}" class="block text-gray-700 hover:text-gray-900">Wallet</a>
                 </li>
-                <li>
+                {% comment %} <li>
                   <a href="" class="block text-gray-700 hover:text-gray-900">Coupon</a>
-                </li>
+                </li> {% endcomment %}
                 <li>
                   <a href="{% url 'change_password' %}" class="block text-gray-700 hover:text-gray-900">Change Password</a>
                 </li>

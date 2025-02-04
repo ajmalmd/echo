@@ -20,12 +20,11 @@
          class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'wallet' %} bg-black text-white {% else %} text-gray-700 hover:bg-gray-100 {% endif %}">
         Wallet
       </a>
-      <a {% comment %}
+      {% comment %}<a 
          href="{% url 'coupon' %}"
-         {% endcomment %}
          class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'coupon' %} bg-black text-white {% else %} text-gray-700 hover:bg-gray-100 {% endif %}">
         Coupon
-      </a>
+      </a>{% endcomment %}
       <a href="{% url 'change_password' %}"
          class="block px-4 py-2 rounded-md transition-colors duration-150 {% if url_name == 'change_password' %} bg-black text-white {% else %} text-gray-700 hover:bg-gray-100 {% endif %}">
         Change Password
