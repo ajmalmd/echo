@@ -64,7 +64,7 @@
 {% endblock %}
 {% block script %}
   <script>
-    function toggleWishlist(variantId, csrfToken, button) {
+    function toggleWishlist(variantId, csrfToken, button, isMessage) {
       fetch(`{% url 'toggle_wishlist' %}`, {
         method: 'POST',
         headers: {
@@ -79,12 +79,14 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          Swal.fire({
-            icon: 'success',
-            title: data.message,
-            showConfirmButton: false,
-            timer: 2000
-          })
+          if (isMessage) {
+            Swal.fire({
+              icon: 'success',
+              title: data.message,
+              showConfirmButton: false,
+              timer: 2000
+            })
+          }
           // Remove the item from the DOM
           const itemElement = button.closest('a');
           if (itemElement) {
@@ -110,7 +112,7 @@
       })
     }
 
-    function addToCart(variantId,csrfToken) {
+    function addToCart(variantId,csrfToken,button) {
       fetch(`{% url 'add_to_cart' %}`, {
         method: 'POST',
         headers: {
@@ -125,18 +127,13 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            // Update cart item count in the header
-            const cartCountElement = document.getElementById('cart-count')
-            if (cartCountElement) {
-              cartCountElement.textContent = data.cart_item_count
-            }
-  
             Swal.fire({
               icon: 'success',
               title: data.message,
               showConfirmButton: false,
               timer: 2000
             })
+            toggleWishlist(variantId,csrfToken,button, false)
           } else {
             Swal.fire({
               icon: 'info',
@@ -160,7 +157,7 @@
         button.addEventListener('click', function (e) {
           e.preventDefault()
           const variantId = this.dataset.variantId
-          toggleWishlist(variantId, csrfToken, this)
+          toggleWishlist(variantId, csrfToken, this, true)
         })
       })
 
@@ -169,7 +166,7 @@
         button.addEventListener('click', function (e) {
           e.preventDefault()
           const variantId = this.dataset.variantId
-          addToCart(variantId,csrfToken)
+          addToCart(variantId,csrfToken, this)
         })
       })
     })

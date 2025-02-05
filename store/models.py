@@ -252,7 +252,9 @@ class Order(models.Model):
             elif self.razorpay_payment_status == 'failed':
                 return "Failed"
             elif self.razorpay_payment_status == 'cancelled':
-                return "Refunded"
+                if self.razorpay_payment_id:
+                    return "Refunded"
+                return "Cancelled"
         elif self.order_payment == 'wallet':
             return "Paid"
         else:
@@ -263,7 +265,9 @@ class Order(models.Model):
         item_statuses = self.items.values_list("status", flat=True)
         if all(status == "delivered" for status in item_statuses):
             return "Completed"
-        elif any(status == "returned" for status in item_statuses):
+        elif all(status == "return_approved" for status in item_statuses):
+            return "Returned"
+        elif any(status == "return_approved" for status in item_statuses):
             return "Partially Returned"
         elif any(status == "shipped" for status in item_statuses):
             return "Partially Shipped"

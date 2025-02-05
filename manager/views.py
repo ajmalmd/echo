@@ -72,10 +72,8 @@ def admin_logout(request):
 @user_passes_test(is_staff_user)
 @never_cache
 def dashboard(request):
-    # Get filter parameters
     time_filter = request.GET.get('time_filter', 'monthly')
     
-    # Prepare sales data
     if time_filter == 'yearly':
         sales_data = Order.objects.exclude(
             items__status='cancelled'
@@ -674,8 +672,8 @@ def order_view(request, order_id):
                 variant = ProductVariant.objects.get(id=order_item.product_variant.id)
                 variant.stock += order_item.quantity
                 
-                #Refund to customer wallet on cancellation
-                if order_item.order.order_payment == 'wallet' or (order_item.order.order_payment == 'razorpay' and order_item.order.razorpay_payment_status == 'paid'):
+                #Refund to customer wallet on cancellation and return approval
+                if order_item.order.order_payment == 'wallet' or (order_item.order.order_payment == 'razorpay' and order_item.order.razorpay_payment_status == 'paid') or (order_item.order.order_payment == 'cod' and current_status == 'return_requested'):
                     customer_wallet, created = Wallet.objects.get_or_create(user=order_item.order.user.id)
                     WalletTransaction.objects.create(
                         wallet=customer_wallet,
