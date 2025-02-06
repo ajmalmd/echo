@@ -139,7 +139,7 @@ def users(request):
     # Fetch users, filter by search query if provided
     if search_query:
         users = (
-            User.objects.filter(name__icontains=search_query)
+            User.objects.filter(fullname__icontains=search_query)
             .exclude(is_staff=True)
             .order_by("-date_joined")
         )
@@ -151,7 +151,9 @@ def users(request):
     return render(request, "manager/users.html", {"page_obj": page_obj})
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def toggle_user_status(request, user_id):
     user = get_object_or_404(User, id=user_id)
     user.is_active = not user.is_active
@@ -185,7 +187,9 @@ def brands(request):
     return render(request, "manager/brands.html", {"page_obj": page_obj})
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def add_brand(request):
     if request.method == "POST":
         brand_name = request.POST.get("name")
@@ -206,7 +210,9 @@ def add_brand(request):
     return redirect("brands")
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def edit_brand(request, brand_id):
     brand = get_object_or_404(Brand, id=brand_id)
     if request.method == "POST":
@@ -237,7 +243,9 @@ def edit_brand(request, brand_id):
     return redirect("brands")
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def toggle_brand_status(request, brand_id):
     brand = get_object_or_404(Brand, id=brand_id)
     brand.is_active = not brand.is_active
@@ -275,7 +283,9 @@ def products(request):
     return render(request, "manager/products.html", context)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def toggle_product_status(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product.is_active = not product.is_active
@@ -303,8 +313,9 @@ def product_view(request, product_id):
         },
     )
 
-
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def toggle_variant_status(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
     variant.is_active = not variant.is_active
@@ -314,7 +325,9 @@ def toggle_variant_status(request, variant_id):
     return redirect("product_view", product_id=variant.product.id)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def add_product(request):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -355,7 +368,9 @@ def add_product(request):
     return redirect("products")
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     if request.method == "POST":
@@ -395,7 +410,9 @@ def edit_product(request, product_id):
     return redirect("products")
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def add_variant(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
@@ -493,7 +510,9 @@ def add_variant(request, product_id):
     return redirect("product_view", product_id=product.id)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def edit_variant(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
     product_id = variant.product.id
@@ -618,19 +637,33 @@ def edit_variant(request, variant_id):
     return render(request, "manager/edit_variant.html", context)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def orders(request):
-    orders = (
-        Order.objects.prefetch_related("items")
-        .annotate(total_items=Count("items"))
-        .order_by("-created_at")
-    )
+    search_query = request.GET.get("search", "")
+
+    # Fetch users, filter by search query if provided
+    if search_query:
+        orders = (
+            Order.objects.filter(id__icontains=search_query).prefetch_related("items")
+            .annotate(total_items=Count("items"))
+            .order_by("-created_at")
+        )
+    else:
+        orders = (
+            Order.objects.prefetch_related("items")
+            .annotate(total_items=Count("items"))
+            .order_by("-created_at")
+        )
     page_obj = paginate_items(request, orders, per_page=10)
     context = {"page_obj": page_obj}
     return render(request, "manager/orders.html", context)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def order_view(request, order_id):
     statuses = {
         "pending": [
@@ -710,7 +743,9 @@ def order_view(request, order_id):
     return render(request, "manager/order_view.html", context)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 @require_http_methods(["GET", "POST"])
 def offers(request):
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -777,10 +812,17 @@ def offers(request):
             return JsonResponse({"success": True, "message": "Offer added successfully."})
         except ValidationError as e:
             return JsonResponse({"success": False, "message": str(e)})
+        
+    search_query = request.GET.get("search", "")
 
+    # Fetch users, filter by search query if provided
+    if search_query:
+        offers = Offer.objects.filter(name__icontains=search_query).order_by('-created_at')
+    else:
+        offers = Offer.objects.all().order_by('-created_at')
+    
     products = Product.objects.filter(is_active=True, brand__is_active=True)
     brands = Brand.objects.filter(is_active=True)
-    offers = Offer.objects.all().order_by('-created_at')
     page_obj = paginate_items(request, offers, per_page=10)
     context = {
         "brands": brands,
@@ -790,7 +832,9 @@ def offers(request):
     return render(request, "manager/offers.html", context)
 
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 @require_http_methods(["POST"])
 def edit_offer(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -879,6 +923,9 @@ def edit_offer(request):
 
     return JsonResponse({"success": False, "message": "Invalid request method"})
 
+@login_required(login_url="admin_login")
+@user_passes_test(is_staff_user)
+@never_cache
 @require_http_methods(["POST"])
 @csrf_exempt
 def get_offer_details(request):
@@ -905,7 +952,9 @@ def get_offer_details(request):
 
     return JsonResponse(data)
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 @csrf_exempt
 def toggle_offer_status(request):
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -993,15 +1042,24 @@ def coupons(request):
             return JsonResponse({"success": True, "message": "Coupon added successfully."})
         except Exception as e:
             return JsonResponse({"success": False, "message": str(e)})
+        
+    search_query = request.GET.get("search", "")
 
-    coupons = Coupon.objects.all().order_by('-created_at')
+    # Fetch users, filter by search query if provided
+    if search_query:
+        coupons = Coupon.objects.filter(code__icontains=search_query).order_by('-created_at')
+    else:
+        coupons = Coupon.objects.all().order_by('-created_at')
+
     page_obj = paginate_items(request, coupons, per_page=10)
     context = {
         "page_obj": page_obj
     }
     return render(request, "manager/coupons.html", context)
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 @require_http_methods(["POST"])
 def edit_coupon(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -1088,7 +1146,9 @@ def edit_coupon(request):
 
     return JsonResponse({"success": False, "message": "Invalid request method"})
 
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
 def toggle_coupon_status(request):
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
         data = json.loads(request.body)
@@ -1104,8 +1164,10 @@ def toggle_coupon_status(request):
     else:
         return JsonResponse({"success": False, "message": "Invalid Request."})
 
-@require_http_methods(["POST"])
+@login_required(login_url="admin_login")
 @user_passes_test(is_staff_user)
+@never_cache
+@require_http_methods(["POST"])
 def get_coupon_details(request):
     data = json.loads(request.body)
     coupon_id = data.get('coupon_id')
@@ -1127,6 +1189,9 @@ def get_coupon_details(request):
 
     return JsonResponse(data)
 
+@login_required(login_url="admin_login")
+@user_passes_test(is_staff_user)
+@never_cache
 @user_passes_test(is_staff_user)
 def report(request):
     # Get filter parameters
@@ -1177,6 +1242,9 @@ def report(request):
 
     return render(request, 'manager/report.html', context)
 
+@login_required(login_url="admin_login")
+@user_passes_test(is_staff_user)
+@never_cache
 @user_passes_test(is_staff_user)
 def download_report(request):
     # Get filter parameters

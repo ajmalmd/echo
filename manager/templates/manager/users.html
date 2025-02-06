@@ -4,14 +4,15 @@
   <div class="bg-gray-900 p-4 rounded-md">
     <!-- Search Bar -->
     <div class="mb-4 flex justify-between items-center">
-      <input
-        type="text"
-        class="bg-gray-700 text-white px-4 py-2 rounded-md"
-        placeholder="Search"
-      />
-      {% comment %} <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-md"
-        >Add New User</a
-      > {% endcomment %}
+      <form action="{% url 'users' %}" method="get" class="relative">
+        <input
+          type="text"
+          name="search"
+          value="{{ request.GET.search|default:'' }}"
+          class="bg-gray-700 text-white px-4 py-2 rounded-md"
+          placeholder="Search"
+        />
+      </form>
     </div>
 
     <!-- Brands Table -->

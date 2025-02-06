@@ -5,9 +5,15 @@
     <div class="bg-gray-900 p-4 rounded-md">
       <!-- Search Bar -->
       <div class="mb-4 flex justify-between items-center">
-        <input type="text"
-               class="bg-gray-700 text-white px-4 py-2 rounded-md"
-               placeholder="Search" />
+        <form action="{% url 'coupons' %}" method="get" class="relative">
+          <input
+            type="text"
+            name="search"
+            value="{{ request.GET.search|default:'' }}"
+            class="bg-gray-700 text-white px-4 py-2 rounded-md"
+            placeholder="Search"
+          />
+        </form>
         <button id="add-coupon-btn"
                 class="bg-blue-600 text-white px-4 py-2 rounded-md"
                 data-modal-toggle="add-coupon-modal">Add New Coupon</button>
