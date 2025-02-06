@@ -73,6 +73,7 @@ def admin_logout(request):
 @never_cache
 def dashboard(request):
     time_filter = request.GET.get('time_filter', 'monthly')
+    current_year = datetime.now().year
     
     if time_filter == 'yearly':
         sales_data = Order.objects.exclude(
@@ -83,7 +84,7 @@ def dashboard(request):
             total_sales=Sum('total_price_after_discount')
         ).order_by('date')
     else:  # monthly
-        sales_data = Order.objects.exclude(
+        sales_query = Order.objects.exclude(
             items__status='cancelled'
         ).annotate(
             date=TruncMonth('created_at')
@@ -91,6 +92,18 @@ def dashboard(request):
             total_sales=Sum('total_price_after_discount')
         ).order_by('date')
 
+        sales_dict = {entry['date'].strftime('%Y-%m'): entry['total_sales'] for entry in sales_query}
+
+        sales_data = []
+        
+        #sales data for the current year
+        for month in range(1, 13):
+            month_key = f"{current_year}-{month:02d}"
+            sales_data.append({
+                'date': month_key,
+                'total_sales': sales_dict.get(month_key, 0)
+            })
+            
     
     # Get top 10 selling products
     top_products = OrderItem.objects.exclude(status='cancelled').values(
