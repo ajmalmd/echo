@@ -29,7 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['65.2.162.37','echoaudio.store']
+ALLOWED_HOSTS = ['13.127.53.46','echoaudio.store']
 
 
 # Application definition
