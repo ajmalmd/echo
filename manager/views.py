@@ -197,7 +197,7 @@ def add_brand(request):
             messages.error(request, "Invalid name. Use only alphabets and spaces.")
             return redirect("brands")
 
-        if Brand.objects.filter(name=brand_name).exists():
+        if Brand.objects.filter(name__iexact=brand_name).exists():
             messages.error(request, "Brand with this name already exists.")
             return redirect("brands")
 
@@ -224,7 +224,7 @@ def edit_brand(request, brand_id):
             return redirect("brands")
 
         # Check if a different brand already has this name
-        if Brand.objects.filter(name=new_name).exclude(id=brand_id).exists():
+        if Brand.objects.filter(name__iexact=new_name).exclude(id=brand_id).exists():
             messages.error(request, "Brand with this name already exists.")
             return redirect("brands")
 
