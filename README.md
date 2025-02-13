@@ -29,8 +29,8 @@ Ensure you have the following installed:
 ### Steps to Set Up the Project
 1. **Clone the Repository:**
    ```bash
-   git clone <repository_url>
-   cd <project_directory>
+   git clone https://github.com/ajmalmd/echo.git
+   cd echo
    ```
 2. **Create and Activate Virtual Environment:**
    ```bash
