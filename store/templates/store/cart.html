@@ -257,7 +257,6 @@
                       document.querySelector('#apply-coupon').classList.remove('hidden');
                       document.querySelector('#applied-coupon').classList.add('hidden');
                       document.getElementById('coupon-discount').textContent = '0.00';
-                      updateTotal();
                       document.getElementById('coupon-code').value = '';
                   }
 
@@ -265,6 +264,7 @@
                   document.getElementById('total').textContent = parseFloat(data.total).toFixed(2);
                   document.getElementById('total-mrp').textContent = parseFloat(data.total_mrp).toFixed(2);
                   document.getElementById('total-discount').textContent = parseFloat(data.total_discount).toFixed(2);
+                  updateTotal();
                 
                 // If cart is empty, show empty cart message
                 if (data.item_count === 0) {

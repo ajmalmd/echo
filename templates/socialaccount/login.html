@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echo</title>
+    {% load static %}
+    <link rel="icon" type="image/x-icon" href="{% static 'store/images/favicon.ico' %}" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+      body::-webkit-scrollbar {
+        display: none;
+      }
+      .font-ubuntu {
+        font-family: 'Ubuntu', sans-serif;
+      }
+      .font-roboto {
+        font-family: 'Roboto', sans-serif;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col min-h-screen bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-white shadow-md relative">
+      <div class="container mx-auto px-4">
+        <!-- Top Bar -->
+        <div class="py-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <a href="{% url 'home' %}" class="shrink-0"><h1 class="text-3xl font-regular font-ubuntu">echo.</h1></a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Main Content -->
+    <main class="flex-grow">
+      <div class="m-5">
+        <div class="flex flex-col md:flex-row items-center justify-center">
+          <!-- Headphones Image -->
+          <div class="w-full md:w-1/2">
+            <img src="{% static 'store/images/headphone.png' %}" alt="Headphones" class="mx-auto max-w-sm" />
+          </div>
+
+          <!-- Login Form -->
+          <div class="w-full md:w-1/3 bg-white shadow-lg rounded-lg p-8">
+            <div class="mt-4 text-center">
+              <h1 className="text-2xl font-bold mb-4 text-gray-800">Sign In Via <span class="font-bold">{{ provider.name }}</span></h1>
+              <form method="post" className="space-y-4">
+                {% csrf_token %}
+                <button type="submit" class="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-regular font-ubuntu mt-2">CONTINUE</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-gray-800 text-gray-300">
+      <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
+        <div class="mb-4 md:mb-0">
+          <span class="text-3xl font-regular font-ubuntu text-white">echo.</span>
+        </div>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+          <a href="#" class="hover:underline">Policy</a>
+          <a href="#" class="hover:underline">About Us</a>
+          <a href="#" class="hover:underline">Terms & Conditions</a>
+          <a href="#" class="hover:underline">Contact</a>
+        </div>
+        <div class="flex space-x-4 mt-4 md:mt-0">
+          <a href="#" class="hover:text-white"><i class="fab fa-facebook"></i></a>
+          <a href="#" class="hover:text-white"><i class="fab fa-twitter"></i></a>
+          <a href="#" class="hover:text-white"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="text-center text-gray-500 text-sm mt-4">© Copyright 2021. All rights reserved.</div>
+    </footer>
+  </body>
+</html>

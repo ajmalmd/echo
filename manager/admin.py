@@ -59,3 +59,7 @@ class ProductImageAdmin(admin.ModelAdmin):
     list_display = ("product_variant", "image_path")
     search_fields = ("product_variant__name", "product_variant__product__name")
     list_filter = ("product_variant__product__brand", "product_variant__product__type")
+
+admin.site.register(Coupon)
+admin.site.register(CouponUsage)
+admin.site.register(Offer)

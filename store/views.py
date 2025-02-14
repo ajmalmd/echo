@@ -810,10 +810,9 @@ def cart(request):
     total_discounted = round(cart.total_discounted_price(), 2)
     # Check if the applied coupon is still valid
     if cart.applied_coupon:
-        cart_total = cart.total_discounted_price()
-        if cart_total < cart.applied_coupon.min_purchase_amount:
-            cart.applied_coupon = None
-            cart.save()
+        cart.applied_coupon = None
+        cart.save()
+        
     context = {
         "cart_items": cart_items,
         "total": total_discounted,

@@ -228,7 +228,7 @@
     <main class="flex-grow">
       <!-- Message Bar -->
       {% if messages %}
-        <div id="message-bar" class="fixed left-0 w-full z-50">
+        <div id="message-bar" class="fixed top-0 left-0 w-full z-50">
           {% for message in messages %}
             <div class="py-2 px-4 text-center shadow-md flex items-center justify-between mb-2 {% if message.tags == 'error' %}
                 bg-red-500 text-white
